@@ -1,7 +1,7 @@
 :root {
 
   --mg-color-dark: hsl(255deg 0% 15%);
-  --mg-color-light: hsl(255deg 0% 85%);
+  --mg-color-light: hsl(255deg 0% 95%);
   --mg-color-primary: #50a367;
   --mg-control-radius: 1rem;
   --mg-input-radius: 1rem;
@@ -16,6 +16,10 @@
 html,
 body {
   height: 100%;
+}
+
+html * {
+  transition: background 0.3s, color 0.3s;
 }
 
 .hidden-ux {

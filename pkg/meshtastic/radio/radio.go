@@ -168,3 +168,25 @@ func TryDecode(packet *generated.MeshPacket, key []byte) (*generated.Data, error
 func (s *Something) TryDecode(packet *generated.MeshPacket, key []byte) (*generated.Data, error) {
 	return TryDecode(packet, key)
 }
+
+func GetPriority(data *generated.Data, wantAck bool) generated.MeshPacket_Priority {
+	priority := generated.MeshPacket_DEFAULT
+	if wantAck {
+		// if a reliable message give a bit higher default priority
+		priority = generated.MeshPacket_RELIABLE
+	}
+	if data.Portnum == generated.PortNum_ROUTING_APP {
+		// if acks/naks give very high priority
+		priority = generated.MeshPacket_ACK
+	} else if data.Portnum == generated.PortNum_TEXT_MESSAGE_APP || data.Portnum == generated.PortNum_ADMIN_APP {
+		// if text or admin, give high priority
+		priority = generated.MeshPacket_HIGH
+	} else if data.RequestId != 0 {
+		// if it is a response, give higher priority to let it arrive early and stop the request being relayed
+		priority = generated.MeshPacket_RESPONSE
+	} else if data.WantResponse {
+		// Also if we want a response, give a bit higher priority
+		priority = generated.MeshPacket_RELIABLE
+	}
+	return priority
+}

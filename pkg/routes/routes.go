@@ -90,6 +90,14 @@ func (wr *WebRouter) handleRequests(listenAddr string) error {
 }
 
 func (wr *WebRouter) loginPage(w http.ResponseWriter, r *http.Request) {
+
+	session, _ := wr.getSession(r)
+	user, err := wr.getUser(session)
+	if err == nil && user != nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
 	tmpl, err := web.GetHTMLTemplate("login")
 	if err != nil {
 		log.Printf("%q\n", err)

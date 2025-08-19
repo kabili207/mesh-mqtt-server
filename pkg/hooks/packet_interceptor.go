@@ -7,10 +7,11 @@ import (
 	"github.com/kabili207/mesh-mqtt-server/pkg/meshtastic"
 	pb "github.com/kabili207/mesh-mqtt-server/pkg/meshtastic/generated"
 	"github.com/kabili207/mesh-mqtt-server/pkg/meshtastic/radio"
+	"github.com/kabili207/mesh-mqtt-server/pkg/models"
 	"google.golang.org/protobuf/proto"
 )
 
-func (h *MeshtasticHook) TryProcessMeshPacket(clientID string, env *pb.ServiceEnvelope) bool {
+func (h *MeshtasticHook) TryProcessMeshPacket(client *models.ClientDetails, env *pb.ServiceEnvelope) bool {
 
 	pkt := env.GetPacket()
 	if pkt == nil {
@@ -26,7 +27,7 @@ func (h *MeshtasticHook) TryProcessMeshPacket(clientID string, env *pb.ServiceEn
 		return false
 	}
 
-	h.processMeshPacket(clientID, env, decoded)
+	h.processMeshPacket(client, env, decoded)
 
 	if !shouldReencrypt {
 		pkt.PayloadVariant = &pb.MeshPacket_Decoded{
@@ -48,7 +49,7 @@ func (h *MeshtasticHook) TryProcessMeshPacket(clientID string, env *pb.ServiceEn
 	return true
 }
 
-func (h *MeshtasticHook) processMeshPacket(clientID string, env *pb.ServiceEnvelope, data *pb.Data) {
+func (h *MeshtasticHook) processMeshPacket(client *models.ClientDetails, env *pb.ServiceEnvelope, data *pb.Data) {
 	switch data.Portnum {
 	case pb.PortNum_TRACEROUTE_APP:
 		var r = pb.RouteDiscovery{}
@@ -64,34 +65,46 @@ func (h *MeshtasticHook) processMeshPacket(clientID string, env *pb.ServiceEnvel
 		var u = pb.User{}
 		err := proto.Unmarshal(data.Payload, &u)
 		if err == nil {
-			go h.processNodeInfo(clientID, env, &u)
+			go h.processNodeInfo(client, env, data, &u)
 		}
 	}
 
 }
 
-func (h *MeshtasticHook) processNodeInfo(clientID string, env *pb.ServiceEnvelope, user *pb.User) {
-	h.clientLock.RLock()
-	defer h.clientLock.RUnlock()
-	c, ok := h.knownClients[clientID]
-	if !ok || !c.IsMeshDevice() {
+func (h *MeshtasticHook) processNodeInfo(c *models.ClientDetails, env *pb.ServiceEnvelope, data *pb.Data, user *pb.User) {
+
+	if c == nil || !c.IsMeshDevice() {
 		// The only time this should happen is when a client sends a node info
 		// and immediately loses connection
 		return
 	}
 
-	if c.NodeID == "" {
+	if c.NodeDetails == nil {
 		// Proxied clients don't always connect with a client ID that contains the node ID
-		c.NodeID = env.GatewayId
+		nid, err := meshtastic.ParseNodeID(env.GatewayId)
+		if err != nil {
+			return
+		}
+		c.NodeDetails = &models.NodeInfo{NodeID: nid}
 	}
 
 	//clientNode, _ := meshtastic.ParseNodeID(c.NodeID)
-	if c.NodeID != user.Id {
+	if c.NodeDetails.NodeID.String() != user.Id {
 		// Relayed from the mesh, we don't care about it
 		return
 	}
-	c.LongName = user.LongName
-	c.ShortName = user.ShortName
+	c.NodeDetails.LongName = user.LongName
+	c.NodeDetails.ShortName = user.ShortName
+	if !c.IsVerified {
+		if c.VerifyPacketID == 0 {
+			go h.TryVerifyNode(c.ClientID, false)
+		} else {
+			if data.RequestId == c.VerifyPacketID {
+				c.IsVerified = true
+				h.config.Server.Log.Info("node downlink verified", "node", c.NodeDetails.NodeID, "client", c.ClientID, "topic", c.RootTopic)
+			}
+		}
+	}
 	// TODO: Update database record as well
 }
 

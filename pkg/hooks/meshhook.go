@@ -6,11 +6,13 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/hooks/auth"
 	"github.com/mochi-mqtt/server/v2/packets"
 
+	"github.com/kabili207/mesh-mqtt-server/pkg/meshtastic"
 	pb "github.com/kabili207/mesh-mqtt-server/pkg/meshtastic/generated"
 	"github.com/kabili207/mesh-mqtt-server/pkg/models"
 	"github.com/kabili207/mesh-mqtt-server/pkg/store"
@@ -20,6 +22,7 @@ import (
 const (
 	meshDevicePattern   = `^(?:Meshtastic(Android|Apple)MqttProxy-)?(![0-9a-f]{8})$`
 	unknownProxyPattern = `^Meshtastic(Android|Apple)MqttProxy-(.+)$`
+	channelPattern      = `^(msh(?:\/[^\/\n]+?)*)\/2\/e\/(\w+)\/(![a-f0-9]{8})$`
 
 	meshFilter        auth.RString = `msh/US/2/#`
 	meshGatewayFilter auth.RString = `msh/US/Gateway/2/#`
@@ -28,21 +31,26 @@ const (
 var (
 	meshDeviceRegex   = regexp.MustCompile(meshDevicePattern)
 	unknownProxyRegex = regexp.MustCompile(unknownProxyPattern)
+	channelRegex      = regexp.MustCompile(channelPattern)
 )
 
 // Options contains configuration settings for the hook.
 type MeshtasticHookOptions struct {
 	Server  *mqtt.Server
 	Storage *store.Stores
+	NodeID  meshtastic.NodeID
+
+	LongName, ShortName string
 }
 
 var _ models.MeshMqttServer = (*MeshtasticHook)(nil)
 
 type MeshtasticHook struct {
 	mqtt.HookBase
-	config       *MeshtasticHookOptions
-	knownClients map[string]*models.ClientDetails
-	clientLock   sync.RWMutex
+	config          *MeshtasticHookOptions
+	knownClients    map[string]*models.ClientDetails
+	clientLock      sync.RWMutex
+	currentPacketId uint32
 }
 
 func (h *MeshtasticHook) ID() string {
@@ -108,11 +116,14 @@ func (h *MeshtasticHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packe
 	validated := h.validateUser(user, string(pass))
 	if validated {
 
-		nodeID, proxyType := "", ""
+		nodeDetails, proxyType := (*models.NodeInfo)(nil), ""
 		if meshDeviceRegex.MatchString(cl.ID) {
 			matches := meshDeviceRegex.FindStringSubmatch(cl.ID)
 			proxyType = matches[1]
-			nodeID = matches[2]
+			nid, err := meshtastic.ParseNodeID(matches[2])
+			if err == nil {
+				nodeDetails = &models.NodeInfo{NodeID: nid}
+			}
 		} else if unknownProxyRegex.MatchString(cl.ID) {
 			matches := unknownProxyRegex.FindStringSubmatch(cl.ID)
 			proxyType = matches[1]
@@ -120,17 +131,17 @@ func (h *MeshtasticHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packe
 		}
 		h.clientLock.Lock()
 		h.knownClients[clientID] = &models.ClientDetails{
-			UserID:    user,
-			ClientID:  clientID,
-			NodeID:    nodeID,
-			ProxyType: proxyType,
-			Address:   cl.Net.Remote,
+			UserID:      user,
+			ClientID:    clientID,
+			NodeDetails: nodeDetails,
+			ProxyType:   proxyType,
+			Address:     cl.Net.Remote,
 		}
 		h.clientLock.Unlock()
-		h.Log.Info("client authenticated", "username", user, "client", clientID, "node", nodeID, "proxy", proxyType)
+		h.Log.Info("client authenticated", "username", user, "client", clientID, "node", nodeDetails, "proxy", proxyType)
 
-		if nodeID != "" {
-			go h.RequestNodeInfo(cl.ID)
+		if nodeDetails != nil {
+			go h.TryVerifyNode(cl.ID, false)
 		}
 	}
 
@@ -159,7 +170,7 @@ func (h *MeshtasticHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) b
 
 	isMeshTopic := meshFilter.FilterMatches(topic)
 	isGatewayTopic := meshGatewayFilter.FilterMatches(topic)
-	if !isMeshTopic {
+	if !isMeshTopic && !isGatewayTopic {
 		return false
 	}
 
@@ -207,23 +218,53 @@ func (h *MeshtasticHook) subscribeCallback(cl *mqtt.Client, sub packets.Subscrip
 func (h *MeshtasticHook) OnConnect(cl *mqtt.Client, pk packets.Packet) error {
 	h.Log.Info("client connected", "client", cl.ID)
 
-	// Example demonstrating how to subscribe to a topic within the hook.
-	//h.config.Server.Subscribe("hook/direct/publish", 1, h.subscribeCallback)
-
-	// Example demonstrating how to publish a message within the hook
-	//err := h.config.Server.Publish("hook/direct/publish", []byte("packet hook message"), false, 0)
-	//if err != nil {
-	//	h.Log.Error("hook.publish", "error", err)
-	//}
-
 	return nil
 }
 
-func (h *MeshtasticHook) RequestNodeInfo(clientID string) {
-	//err := h.config.Server.Publish("hook/direct/publish", []byte("packet hook message"), false, 0)
-	//if err != nil {
-	//	h.Log.Error("hook.publish", "error", err)
-	//}
+func (h *MeshtasticHook) TryVerifyNode(clientID string, force bool) {
+	h.clientLock.RLock()
+	cd, _ := h.knownClients[clientID]
+	h.clientLock.RUnlock()
+	if cd.VerifyPacketID != 0 && (cd.IsVerified || force) {
+		h.RequestNodeInfo(cd)
+	}
+}
+
+func (h *MeshtasticHook) RequestNodeInfo(client *models.ClientDetails) {
+
+	if client.NodeDetails == nil || client.RootTopic == "" || !client.VerifyLock.TryLock() {
+		return
+	}
+	defer client.VerifyLock.Unlock()
+
+	unmess := true
+	nodeInfo := pb.User{
+		Id:         h.config.NodeID.String(),
+		LongName:   h.config.LongName,
+		ShortName:  h.config.ShortName,
+		IsLicensed: false,
+		HwModel:    pb.HardwareModel_PRIVATE_HW,
+		Role:       pb.Config_DeviceConfig_CLIENT_MUTE,
+		//Macaddr:    from.ToMacAddress(),
+		PublicKey:      nil,
+		IsUnmessagable: &unmess,
+	}
+
+	pid, err := h.sendProtoMessage("LongFast", client.RootTopic, &nodeInfo, PacketInfo{
+		To:           client.NodeDetails.NodeID,
+		PortNum:      pb.PortNum_NODEINFO_APP,
+		Encrypted:    PSKEncryption,
+		WantResponse: true,
+	})
+	if err == nil {
+		h.config.Server.Log.Info("verification packet sent to node", "node", client.NodeDetails.NodeID, "client", client.ClientID, "topic_root", client.RootTopic)
+		client.VerifyPacketID = pid
+		time.AfterFunc(5*time.Minute, func() {
+			if !client.IsVerified {
+				client.VerifyPacketID = 0
+			}
+		})
+	}
 }
 
 func (h *MeshtasticHook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
@@ -257,7 +298,13 @@ func (h *MeshtasticHook) OnPublish(cl *mqtt.Client, pk packets.Packet) (packets.
 			h.Log.Error("received non-mesh payload from client", "client", cl.ID, "payload", string(pk.Payload))
 			return pk, err
 		}
-		h.TryProcessMeshPacket(cl.ID, &env)
+		h.clientLock.RLock()
+		cd, ok := h.knownClients[cl.ID]
+		h.clientLock.RUnlock()
+		if ok && cd.IsMeshDevice() {
+			h.TrySetRootTopic(cd, pk.TopicName)
+		}
+		h.TryProcessMeshPacket(cd, &env)
 		payload, err := proto.Marshal(&env)
 		if err != nil {
 			// Do not allow non-meshtastic payloads in the msh tree
@@ -271,6 +318,22 @@ func (h *MeshtasticHook) OnPublish(cl *mqtt.Client, pk packets.Packet) (packets.
 	}
 
 	return pk, nil
+}
+
+func (h *MeshtasticHook) TrySetRootTopic(cd *models.ClientDetails, topic string) {
+	matches := channelRegex.FindStringSubmatch(topic)
+	if len(matches) > 0 {
+		cd.RootTopic = matches[1]
+		if cd.NodeDetails == nil {
+			// Proxied clients don't always connect with a client ID that contains the node ID
+			nid, err := meshtastic.ParseNodeID(matches[3])
+			if err != nil {
+				return
+			}
+			cd.NodeDetails = &models.NodeInfo{NodeID: nid}
+		}
+		go h.TryVerifyNode(cd.ClientID, false)
+	}
 }
 
 func (h *MeshtasticHook) OnPublished(cl *mqtt.Client, pk packets.Packet) {

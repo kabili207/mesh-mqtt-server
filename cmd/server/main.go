@@ -12,6 +12,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	cfg "github.com/kabili207/mesh-mqtt-server/pkg/config"
 	"github.com/kabili207/mesh-mqtt-server/pkg/hooks"
+	"github.com/kabili207/mesh-mqtt-server/pkg/meshtastic"
 	"github.com/kabili207/mesh-mqtt-server/pkg/routes"
 	"github.com/kabili207/mesh-mqtt-server/pkg/store"
 	mqtt "github.com/mochi-mqtt/server/v2"
@@ -92,9 +93,17 @@ func main() {
 
 	meshHook := new(hooks.MeshtasticHook)
 
+	nodeid, err := meshtastic.ParseNodeID(config.SelfNode.NodeID)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	err = server.AddHook(meshHook, &hooks.MeshtasticHookOptions{
-		Server:  server,
-		Storage: storage,
+		Server:    server,
+		Storage:   storage,
+		NodeID:    nodeid,
+		LongName:  config.SelfNode.LongName,
+		ShortName: config.SelfNode.ShortName,
 	})
 
 	if err != nil {

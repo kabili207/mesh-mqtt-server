@@ -12,16 +12,18 @@
                 <th>Name</th>
                 <th>Proxy Type</th>
                 <th>Address</th>
+                <th>Downlink?</th>
             </tr>
         </thead>
         <tbody>
 
         {{ range .ConnectedNodes}}
         <tr>
-            <td>{{.NodeID}}</td>
-            <td>{{if .LongName}}{{.GetDisplayName}}{{else}}<i>unknown</i>{{end}}</td>
+            <td>{{if .NodeDetails}}{{.NodeDetails.NodeID}}{{end}}</td>
+            <td>{{.GetDisplayName}}</td>
             <td>{{if .ProxyType}}{{.ProxyType}}{{else}}<i>n/a</i>{{end}}</td>
             <td>{{.Address}}</td>
+            <td>{{if .IsVerified}}Yes{{else}}No{{end}}</td>
         </tr>
         {{ end }}
         </tbody>
