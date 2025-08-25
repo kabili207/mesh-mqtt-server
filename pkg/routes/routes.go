@@ -3,6 +3,7 @@ package routes
 import (
 	"log"
 	"net/http"
+	"sort"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -124,18 +125,44 @@ func (wr *WebRouter) homePage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		//fmt.Fprintln(w, "<a href='/auth/discord/login'>Log in with Discord</a>")
 	} else {
+
 		clients := wr.MqttServer.GetUserClients(user.UserName)
 
 		nodes := []*models.ClientDetails{}
 		otherClients := []*models.ClientDetails{}
 
+		knownNodes := []uint32{}
 		for _, c := range clients {
 			if c.IsMeshDevice() {
 				nodes = append(nodes, c)
+				if c.NodeDetails != nil {
+					knownNodes = append(knownNodes, uint32(c.NodeDetails.NodeID))
+				}
 			} else {
 				otherClients = append(otherClients, c)
 			}
 		}
+		offlineNodes, err := wr.storage.NodeDB.GetByUserIDExceptNodeIDs(user.ID, knownNodes)
+		for _, n := range offlineNodes {
+			nodes = append(nodes, &models.ClientDetails{
+				NodeDetails: n,
+			})
+		}
+
+		sort.Slice(nodes, func(i, j int) bool {
+			ni, nj := nodes[i], nodes[j]
+			if ni.NodeDetails == nil && nj.NodeDetails != nil {
+				return true
+			}
+			if ni.NodeDetails != nil && nj.NodeDetails == nil {
+				return false
+			}
+			if ni.NodeDetails != nil && nj.NodeDetails != nil {
+				return ni.NodeDetails.NodeID < nj.NodeDetails.NodeID
+			}
+			return ni.ClientID < nj.ClientID
+		})
+
 		tmpl, err := web.GetHTMLTemplate("my_nodes")
 		if err != nil {
 			log.Printf("%q\n", err)

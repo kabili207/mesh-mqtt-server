@@ -3,6 +3,7 @@ package hooks
 import (
 	"math"
 	"slices"
+	"time"
 
 	"github.com/kabili207/mesh-mqtt-server/pkg/meshtastic"
 	pb "github.com/kabili207/mesh-mqtt-server/pkg/meshtastic/generated"
@@ -85,7 +86,13 @@ func (h *MeshtasticHook) processNodeInfo(c *models.ClientDetails, env *pb.Servic
 		if err != nil {
 			return
 		}
-		c.NodeDetails = &models.NodeInfo{NodeID: nid}
+		nodeDetails, err := h.config.Storage.NodeDB.GetNode(uint32(nid), c.UserID)
+		if err != nil {
+			h.Log.Error("error loading node info", "node_id", nid, "user_id", c.UserID, "error", err)
+		} else if nodeDetails == nil {
+			nodeDetails = &models.NodeInfo{NodeID: nid, UserID: c.UserID}
+		}
+		c.NodeDetails = nodeDetails
 	}
 
 	//clientNode, _ := meshtastic.ParseNodeID(c.NodeID)
@@ -93,16 +100,33 @@ func (h *MeshtasticHook) processNodeInfo(c *models.ClientDetails, env *pb.Servic
 		// Relayed from the mesh, we don't care about it
 		return
 	}
+	c.SyncUserID()
 	c.NodeDetails.LongName = user.LongName
 	c.NodeDetails.ShortName = user.ShortName
-	if !c.IsVerified {
+	c.NodeDetails.NodeRole = user.Role.String()
+	c.NodeDetails.LastSeen = radio.Ptr(time.Now())
+	save := true
+	if !c.IsVerified() {
 		if c.VerifyPacketID == 0 {
 			go h.TryVerifyNode(c.ClientID, false)
 		} else {
 			if data.RequestId == c.VerifyPacketID {
-				c.IsVerified = true
+				c.NodeDetails.VerifiedDate = radio.Ptr(time.Now())
+				err := h.config.Storage.NodeDB.SaveInfo(c.NodeDetails)
+				if err != nil {
+					h.config.Server.Log.Error("error updating node info", "node", c.NodeDetails.NodeID, "client", c.ClientID, "error", err)
+					return
+				}
+				save = false
 				h.config.Server.Log.Info("node downlink verified", "node", c.NodeDetails.NodeID, "client", c.ClientID, "topic", c.RootTopic)
 			}
+		}
+	}
+	if save {
+		err := h.config.Storage.NodeDB.SaveInfo(c.NodeDetails)
+		if err != nil {
+			h.config.Server.Log.Error("error updating node info", "node", c.NodeDetails.NodeID, "client", c.ClientID, "error", err)
+			return
 		}
 	}
 	// TODO: Update database record as well

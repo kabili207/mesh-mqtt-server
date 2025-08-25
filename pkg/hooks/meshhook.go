@@ -96,7 +96,7 @@ func (h *MeshtasticHook) GetUserClients(mqttUser string) []*models.ClientDetails
 	defer h.clientLock.RUnlock()
 
 	for _, c := range h.knownClients {
-		if c.UserID == mqttUser {
+		if c.MqttUserName == mqttUser {
 			userClients = append(userClients, c)
 		}
 	}
@@ -113,8 +113,8 @@ func (h *MeshtasticHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packe
 	if user == "admin" {
 		return true
 	}
-	validated := h.validateUser(user, string(pass))
-	if validated {
+	validatedUser := h.validateUser(user, string(pass))
+	if validatedUser != nil {
 
 		nodeDetails, proxyType := (*models.NodeInfo)(nil), ""
 		if meshDeviceRegex.MatchString(cl.ID) {
@@ -122,7 +122,12 @@ func (h *MeshtasticHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packe
 			proxyType = matches[1]
 			nid, err := meshtastic.ParseNodeID(matches[2])
 			if err == nil {
-				nodeDetails = &models.NodeInfo{NodeID: nid}
+				nodeDetails, err = h.config.Storage.NodeDB.GetNode(uint32(nid), validatedUser.ID)
+				if err != nil {
+					h.Log.Error("error loading node info", "node_id", nid, "user_id", validatedUser.ID, "error", err)
+				} else if nodeDetails == nil {
+					nodeDetails = &models.NodeInfo{NodeID: nid, UserID: validatedUser.ID}
+				}
 			}
 		} else if unknownProxyRegex.MatchString(cl.ID) {
 			matches := unknownProxyRegex.FindStringSubmatch(cl.ID)
@@ -131,11 +136,12 @@ func (h *MeshtasticHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packe
 		}
 		h.clientLock.Lock()
 		h.knownClients[clientID] = &models.ClientDetails{
-			UserID:      user,
-			ClientID:    clientID,
-			NodeDetails: nodeDetails,
-			ProxyType:   proxyType,
-			Address:     cl.Net.Remote,
+			MqttUserName: user,
+			ClientID:     clientID,
+			UserID:       validatedUser.ID,
+			NodeDetails:  nodeDetails,
+			ProxyType:    proxyType,
+			Address:      cl.Net.Remote,
 		}
 		h.clientLock.Unlock()
 		h.Log.Info("client authenticated", "username", user, "client", clientID, "node", nodeDetails, "proxy", proxyType)
@@ -145,15 +151,7 @@ func (h *MeshtasticHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packe
 		}
 	}
 
-	return validated
-	//if _, ok := h.ledger.AuthOk(cl, pk); ok {
-	//	return true
-	//}
-	//
-	//h.Log.Info("client failed authentication check",
-	//	"username", string(pk.Connect.Username),
-	//	"remote", cl.Net.Remote)
-	//return false
+	return validatedUser != nil
 }
 
 // OnACLCheck returns true if the connecting client has matching read or write access to subscribe
@@ -180,7 +178,7 @@ func (h *MeshtasticHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) b
 	if !ok {
 		h.Log.Warn("unknown client in ACL check",
 			"client", cl.ID,
-			"username", cd.UserID,
+			"username", cd.MqttUserName,
 			"topic", topic)
 		return false
 	}
@@ -202,11 +200,6 @@ func (h *MeshtasticHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) b
 
 	// TODO: Check ACLs for other users
 
-	h.Log.Debug("client failed allowed ACL check",
-		"client", cl.ID,
-		"username", cd.UserID,
-		"topic", topic)
-
 	return false
 }
 
@@ -225,7 +218,7 @@ func (h *MeshtasticHook) TryVerifyNode(clientID string, force bool) {
 	h.clientLock.RLock()
 	cd, _ := h.knownClients[clientID]
 	h.clientLock.RUnlock()
-	if cd.VerifyPacketID != 0 && (cd.IsVerified || force) {
+	if cd.VerifyPacketID == 0 && (!cd.IsVerified() || force) {
 		h.RequestNodeInfo(cd)
 	}
 }
@@ -260,9 +253,7 @@ func (h *MeshtasticHook) RequestNodeInfo(client *models.ClientDetails) {
 		h.config.Server.Log.Info("verification packet sent to node", "node", client.NodeDetails.NodeID, "client", client.ClientID, "topic_root", client.RootTopic)
 		client.VerifyPacketID = pid
 		time.AfterFunc(5*time.Minute, func() {
-			if !client.IsVerified {
-				client.VerifyPacketID = 0
-			}
+			client.VerifyPacketID = 0
 		})
 	}
 }
@@ -313,6 +304,7 @@ func (h *MeshtasticHook) OnPublish(cl *mqtt.Client, pk packets.Packet) (packets.
 		}
 		pkx := pk
 		pkx.Payload = payload
+		// TODO: If gateway is not verified, push to non gateway topic instead
 		return pkx, nil
 
 	}
@@ -330,7 +322,13 @@ func (h *MeshtasticHook) TrySetRootTopic(cd *models.ClientDetails, topic string)
 			if err != nil {
 				return
 			}
-			cd.NodeDetails = &models.NodeInfo{NodeID: nid}
+			nodeDetails, err := h.config.Storage.NodeDB.GetNode(uint32(nid), cd.UserID)
+			if err != nil {
+				h.Log.Error("error loading node info", "node_id", nid, "user_id", cd.UserID, "error", err)
+			} else if nodeDetails == nil {
+				nodeDetails = &models.NodeInfo{NodeID: nid, UserID: cd.UserID}
+			}
+			cd.NodeDetails = nodeDetails
 		}
 		go h.TryVerifyNode(cd.ClientID, false)
 	}

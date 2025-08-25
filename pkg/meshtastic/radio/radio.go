@@ -38,6 +38,10 @@ type Something struct {
 // as base64: 1PG7OiApB1nwvP+rz05pAQ==
 var DefaultKey = []byte{0xd4, 0xf1, 0xbb, 0x3a, 0x20, 0x29, 0x07, 0x59, 0xf0, 0xbc, 0xff, 0xab, 0xcf, 0x4e, 0x69, 0x01}
 
+func Ptr[T any](value T) *T {
+	return &value
+}
+
 // ParseKey converts a base64 encoded channel encryption key to a byte slice
 func ParseKey(key string) ([]byte, error) {
 	if strings.ContainsAny(key, "-_") {

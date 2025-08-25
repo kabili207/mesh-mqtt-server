@@ -19,6 +19,7 @@ var dbMigrations embed.FS
 type Stores struct {
 	Users       UserStore
 	OAuthTokens OAuthTokenStore
+	NodeDB      NodeInfoStore
 	db          *sqlx.DB
 }
 
@@ -28,6 +29,7 @@ func New(dbconn *sqlx.DB) (*Stores, error) {
 		db:          dbconn,
 		Users:       NewUsers(dbconn),
 		OAuthTokens: NewOAuthTokens(dbconn),
+		NodeDB:      NewNodeDB(dbconn),
 	}, nil
 }
 

@@ -22,7 +22,7 @@
             <td>{{if .NodeDetails}}{{.NodeDetails.NodeID}}{{end}}</td>
             <td>{{.GetDisplayName}}</td>
             <td>{{if .ProxyType}}{{.ProxyType}}{{else}}<i>n/a</i>{{end}}</td>
-            <td>{{.Address}}</td>
+            <td>{{if .ClientID}}{{.Address}}{{else}}<i>disconnected</i>{{end}}</td>
             <td>{{if .IsVerified}}Yes{{else}}No{{end}}</td>
         </tr>
         {{ end }}

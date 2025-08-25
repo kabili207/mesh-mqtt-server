@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+
+	"github.com/kabili207/mesh-mqtt-server/pkg/models"
 )
 
 type hashPair struct {
@@ -17,18 +19,20 @@ func hashPasswordWithSalt(password, salt string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func (h *MeshtasticHook) validateUser(user, pass string) bool {
+func (h *MeshtasticHook) validateUser(user, pass string) *models.User {
 	u, err := h.config.Storage.Users.GetByUserName(user)
 	if err != nil {
 		h.Log.Error("unable to query mqtt user", "hook", h.ID(), "user", user, "error", err)
-		return false
+		return nil
 	}
 
 	if u == nil {
-		return false
+		return nil
 	}
-	calcHash := hashPasswordWithSalt(pass, u.Salt)
-	return u.PasswordHash == calcHash
+	if hashPasswordWithSalt(pass, u.Salt) == u.PasswordHash {
+		return u
+	}
+	return nil
 }
 
 func randomHex(n int) (string, error) {
