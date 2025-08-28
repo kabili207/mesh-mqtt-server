@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/kabili207/mesh-mqtt-server/pkg/models"
@@ -14,15 +15,18 @@ type UserStore interface {
 	GetByUserName(username string) (*models.User, error)
 	GetByDiscordID(id int64) (*models.User, error)
 	SetDisplayName(user *models.User) error
+	IsSuperuser(id int) (bool, error)
 }
 
 type postgresUserStore struct {
 	db *sqlx.DB
 	//cfg    *conf.Config
+	suCache     map[int]bool
+	suCacheLock sync.RWMutex
 }
 
 func NewUsers(dbconn *sqlx.DB) UserStore {
-	return &postgresUserStore{db: dbconn}
+	return &postgresUserStore{db: dbconn, suCache: make(map[int]bool)}
 }
 
 func (b *postgresUserStore) GetByID(id int) (*models.User, error) {
@@ -64,4 +68,21 @@ func (b *postgresUserStore) SetDisplayName(user *models.User) error {
 
 	_, err := b.db.NamedExec(stmt, user)
 	return err
+}
+
+func (b *postgresUserStore) IsSuperuser(id int) (bool, error) {
+	b.suCacheLock.RLock()
+	if isSU, ok := b.suCache[id]; ok {
+		b.suCacheLock.RUnlock()
+		return isSU, nil
+	}
+	b.suCacheLock.RUnlock()
+	u, err := b.GetByID(id)
+	if u != nil {
+		b.suCacheLock.Lock()
+		b.suCache[id] = u.IsSuperuser
+		b.suCacheLock.Unlock()
+		return u.IsSuperuser, nil
+	}
+	return false, err
 }

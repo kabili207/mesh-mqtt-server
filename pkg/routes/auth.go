@@ -142,7 +142,6 @@ func (wr *WebRouter) getAuthEndpoint(url string, token *oauth2.Token) ([]byte, e
 func (wr *WebRouter) getDiscordGuildStatus(token *oauth2.Token) (bool, error) {
 
 	guildID := "1330739329538195588" //wpamesh
-	//guildID := "1330739329538195695" //unknown
 	guildMemberEndpoint := fmt.Sprintf("%s/users/@me/guilds/%s/member", discordAPIBase, guildID)
 
 	// Create a new request using http

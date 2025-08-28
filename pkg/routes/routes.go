@@ -149,6 +149,10 @@ func (wr *WebRouter) homePage(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
+		sort.Slice(otherClients, func(i, j int) bool {
+			return otherClients[i].ClientID < otherClients[j].ClientID
+		})
+
 		sort.Slice(nodes, func(i, j int) bool {
 			ni, nj := nodes[i], nodes[j]
 			if ni.NodeDetails == nil && nj.NodeDetails != nil {

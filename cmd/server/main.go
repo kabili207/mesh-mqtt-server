@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/url"
 	"os"
 	"os/signal"
@@ -18,10 +19,13 @@ import (
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/listeners"
 	"github.com/spf13/viper"
+
+	"github.com/MatusOllah/slogcolor"
 )
 
 var (
 	config cfg.Configuration
+	logger *slog.Logger
 )
 
 func check(e error) {
@@ -31,6 +35,8 @@ func check(e error) {
 }
 
 func init() {
+	logger = slog.New(slogcolor.NewHandler(os.Stdout, slogcolor.DefaultOptions))
+	slog.SetDefault(logger)
 
 	configPath := flag.String("c", "config.yml", "The path to the config file")
 	flag.Parse()
@@ -76,6 +82,7 @@ func main() {
 
 	server := mqtt.New(&mqtt.Options{
 		InlineClient: true, // you must enable inline client to use direct publishing and subscribing.
+		Logger:       logger,
 	})
 
 	//_ = server.AddHook(new(auth.AllowHook), nil)

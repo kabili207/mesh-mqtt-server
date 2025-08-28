@@ -1,0 +1,2 @@
+ALTER TABLE users
+    ADD is_superuser BOOLEAN NOT NULL DEFAULT FALSE;

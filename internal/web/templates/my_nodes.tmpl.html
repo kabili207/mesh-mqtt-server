@@ -13,6 +13,7 @@
                 <th>Proxy Type</th>
                 <th>Address</th>
                 <th>Downlink?</th>
+                <th>Valid <abbr title="gateway">GW</abbr>?</th>
             </tr>
         </thead>
         <tbody>
@@ -24,6 +25,7 @@
             <td>{{if .ProxyType}}{{.ProxyType}}{{else}}<i>n/a</i>{{end}}</td>
             <td>{{if .ClientID}}{{.Address}}{{else}}<i>disconnected</i>{{end}}</td>
             <td>{{if .IsVerified}}Yes{{else}}No{{end}}</td>
+            <td>{{if .IsValidGateway}}Yes{{else}}No{{end}}</td>
         </tr>
         {{ end }}
         </tbody>

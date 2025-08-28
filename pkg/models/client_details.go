@@ -59,7 +59,7 @@ func (c *ClientDetails) IsVerified() bool {
 }
 
 func (c *ClientDetails) IsValidGateway() bool {
-	return c.NodeDetails != nil && c.IsVerified() &&
+	return c.NodeDetails != nil && c.ProxyType == "" && c.IsVerified() &&
 		c.NodeDetails.NodeRole != pb.Config_DeviceConfig_CLIENT_MUTE.String()
 }
 
@@ -67,6 +67,22 @@ func (c *ClientDetails) SyncUserID() {
 	if c.NodeDetails != nil {
 		c.NodeDetails.UserID = c.UserID
 	}
+}
+
+func (c *ClientDetails) GetValidationErrors() []string {
+	errs := []string{}
+	if c.ProxyType != "" {
+		errs = append(errs, "Node is connected via client proxy")
+	}
+	if c.NodeDetails == nil {
+		errs = append(errs, "Node info not received yet")
+	} else if c.NodeDetails.NodeRole == pb.Config_DeviceConfig_CLIENT_MUTE.String() {
+		errs = append(errs, fmt.Sprintf("Invalid node role: %s", pb.Config_DeviceConfig_CLIENT_MUTE.String()))
+	}
+	if !c.IsVerified() {
+		errs = append(errs, "Downlink over LongFast has not been verified")
+	}
+	return errs
 }
 
 func (c *NodeInfo) GetDisplayName() string {
