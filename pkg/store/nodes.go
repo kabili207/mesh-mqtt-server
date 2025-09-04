@@ -11,8 +11,10 @@ var selectNodes = `SELECT n.* FROM node_info n`
 
 type NodeInfoStore interface {
 	GetNode(nodeId uint32, userId int) (*models.NodeInfo, error)
+	GetAllNodes() ([]*models.NodeInfo, error)
 	GetByUserID(userId int) ([]*models.NodeInfo, error)
 	GetByUserIDExceptNodeIDs(userId int, nodeIDs []uint32) ([]*models.NodeInfo, error)
+	GetAllExceptNodeIDs(nodeIDs []uint32) ([]*models.NodeInfo, error)
 	GetByDiscordID(id int64) (*models.NodeInfo, error)
 	SaveInfo(user *models.NodeInfo) error
 }
@@ -46,6 +48,16 @@ func (b *postgresNodeInfoStore) GetByUserID(userId int) ([]*models.NodeInfo, err
 	return obj, err
 }
 
+func (b *postgresNodeInfoStore) GetAllNodes() ([]*models.NodeInfo, error) {
+	getTokenStatement := selectNodes + " ;"
+	obj := []*models.NodeInfo{}
+	err := b.db.Select(&obj, getTokenStatement)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return obj, err
+}
+
 func (b *postgresNodeInfoStore) GetByUserIDExceptNodeIDs(userId int, nodeIDs []uint32) ([]*models.NodeInfo, error) {
 	if len(nodeIDs) == 0 {
 		return b.GetByUserID(userId)
@@ -53,6 +65,21 @@ func (b *postgresNodeInfoStore) GetByUserIDExceptNodeIDs(userId int, nodeIDs []u
 	getTokenStatement := selectNodes + " WHERE n.user_id = ? AND n.node_id NOT IN(?);"
 	obj := []*models.NodeInfo{}
 	query, args, err := sqlx.In(getTokenStatement, userId, nodeIDs)
+	query = b.db.Rebind(query)
+	err = b.db.Select(&obj, query, args...)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return obj, err
+}
+
+func (b *postgresNodeInfoStore) GetAllExceptNodeIDs(nodeIDs []uint32) ([]*models.NodeInfo, error) {
+	if len(nodeIDs) == 0 {
+		return b.GetAllNodes()
+	}
+	getTokenStatement := selectNodes + " WHERE n.node_id NOT IN(?);"
+	obj := []*models.NodeInfo{}
+	query, args, err := sqlx.In(getTokenStatement, nodeIDs)
 	query = b.db.Rebind(query)
 	err = b.db.Select(&obj, query, args...)
 	if err == sql.ErrNoRows {

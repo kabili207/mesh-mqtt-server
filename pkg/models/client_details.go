@@ -14,6 +14,7 @@ const (
 )
 
 type MeshMqttServer interface {
+	GetAllClients() []*ClientDetails
 	GetUserClients(userID string) []*ClientDetails
 }
 
@@ -28,6 +29,7 @@ type ClientDetails struct {
 	RootTopic      string
 	VerifyPacketID uint32
 	VerifyReqTime  *time.Time
+	InvalidPackets int
 }
 
 type NodeInfo struct {

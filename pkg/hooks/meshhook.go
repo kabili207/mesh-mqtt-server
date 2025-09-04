@@ -89,11 +89,23 @@ func (h *MeshtasticHook) Init(config any) error {
 
 	h.knownClients = make(map[string]*models.ClientDetails)
 
-	hash, salt := generateHashAndSalt("i4fZfUBSQW*AriczfztH")
+	hash, salt := generateHashAndSalt("N#8CFi*BPnrYTqaptpW9")
 	log.Printf("Hash: %s", hash)
 	log.Printf("Salt: %s", salt)
 
 	return nil
+}
+
+func (h *MeshtasticHook) GetAllClients() []*models.ClientDetails {
+	userClients := []*models.ClientDetails{}
+	h.clientLock.RLock()
+	defer h.clientLock.RUnlock()
+
+	for _, c := range h.knownClients {
+		userClients = append(userClients, c)
+	}
+
+	return userClients
 }
 
 func (h *MeshtasticHook) GetUserClients(mqttUser string) []*models.ClientDetails {
@@ -233,7 +245,10 @@ func (h *MeshtasticHook) TryVerifyNode(clientID string, force bool) {
 
 func (h *MeshtasticHook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
 	h.clientLock.Lock()
-	delete(h.knownClients, cl.ID)
+	c, ok := h.knownClients[cl.ID]
+	if ok && c.Address == cl.Net.Remote {
+		delete(h.knownClients, cl.ID)
+	}
 	h.clientLock.Unlock()
 	if err != nil {
 		h.Log.Info("client disconnected", "client", cl.ID, "expire", expire, "error", err)
@@ -345,6 +360,7 @@ func (h *MeshtasticHook) RequestNodeInfo(client *models.ClientDetails) {
 		PortNum:      pb.PortNum_NODEINFO_APP,
 		Encrypted:    PSKEncryption,
 		WantResponse: true,
+		WantAck:      true,
 	})
 	if err == nil {
 		h.config.Server.Log.Info("verification packet sent to node", "node", client.NodeDetails.NodeID, "client", client.ClientID, "topic_root", client.RootTopic)

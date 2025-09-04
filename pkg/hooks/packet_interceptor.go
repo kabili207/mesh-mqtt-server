@@ -51,6 +51,7 @@ func (h *MeshtasticHook) TryProcessMeshPacket(client *models.ClientDetails, env 
 }
 
 func (h *MeshtasticHook) processMeshPacket(client *models.ClientDetails, env *pb.ServiceEnvelope, data *pb.Data) {
+	h.checkPacketVerification(client, env, data)
 	switch data.Portnum {
 	case pb.PortNum_TRACEROUTE_APP:
 		var r = pb.RouteDiscovery{}
@@ -70,6 +71,40 @@ func (h *MeshtasticHook) processMeshPacket(client *models.ClientDetails, env *pb
 		}
 	}
 
+}
+
+func (h *MeshtasticHook) checkPacketVerification(client *models.ClientDetails, env *pb.ServiceEnvelope, data *pb.Data) {
+
+	pkt := env.GetPacket()
+	if pkt == nil {
+		return
+	}
+	sendingNode := meshtastic.NodeID(pkt.From)
+
+	if env.GatewayId != sendingNode.String() {
+		return
+	}
+
+	if client.IsPendingVerification() && data.RequestId == client.VerifyPacketID {
+
+		if client.NodeDetails == nil {
+			nodeDetails, err := h.config.Storage.NodeDB.GetNode(uint32(sendingNode), client.UserID)
+			if err != nil {
+				h.Log.Error("error loading node info", "node_id", sendingNode, "user_id", client.UserID, "error", err)
+			} else if nodeDetails == nil {
+				nodeDetails = &models.NodeInfo{NodeID: sendingNode, UserID: client.UserID}
+			}
+			client.NodeDetails = nodeDetails
+		}
+
+		client.NodeDetails.VerifiedDate = radio.Ptr(time.Now())
+		err := h.config.Storage.NodeDB.SaveInfo(client.NodeDetails)
+		if err != nil {
+			h.config.Server.Log.Error("error updating node info", "node", client.NodeDetails.NodeID, "client", client.ClientID, "error", err)
+			return
+		}
+		h.config.Server.Log.Info("node downlink verified", "node", client.NodeDetails.NodeID, "client", client.ClientID, "topic", client.RootTopic)
+	}
 }
 
 func (h *MeshtasticHook) processNodeInfo(c *models.ClientDetails, env *pb.ServiceEnvelope, data *pb.Data, user *pb.User) {

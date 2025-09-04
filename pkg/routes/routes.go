@@ -82,6 +82,7 @@ func (wr *WebRouter) handleRequests(listenAddr string) error {
 	//staticFS, _ := fs.Sub(web.ContentFS, "static")
 
 	myRouter.HandleFunc("/", wr.homePage)
+	myRouter.HandleFunc("/all-nodes", wr.allNodes)
 	myRouter.HandleFunc("/login", wr.loginPage)
 	myRouter.HandleFunc("/auth/logout", wr.userLogoutHandler)
 	myRouter.HandleFunc("/auth/discord/login", wr.discordLoginHandler)
@@ -179,6 +180,74 @@ func (wr *WebRouter) homePage(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			slog.Error("error executing my_nodes template", "error", err)
+			http.Error(w, "Error parsing template", 500)
+		}
+	}
+}
+
+func (wr *WebRouter) allNodes(w http.ResponseWriter, r *http.Request) {
+	slog.Debug("endpoint hit", "endpoint", "homePage")
+	session, _ := wr.getSession(r)
+	user, err := wr.getUser(session)
+	if err != nil || user == nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+	} else if !user.IsSuperuser {
+		http.Redirect(w, r, "/", http.StatusFound)
+	} else {
+
+		clients := wr.MqttServer.GetUserClients(user.UserName)
+
+		nodes := []*models.ClientDetails{}
+		otherClients := []*models.ClientDetails{}
+
+		knownNodes := []uint32{}
+		for _, c := range clients {
+			if c.IsMeshDevice() {
+				nodes = append(nodes, c)
+				if c.NodeDetails != nil {
+					knownNodes = append(knownNodes, uint32(c.NodeDetails.NodeID))
+				}
+			} else {
+				otherClients = append(otherClients, c)
+			}
+		}
+		offlineNodes, err := wr.storage.NodeDB.GetAllExceptNodeIDs(knownNodes)
+		for _, n := range offlineNodes {
+			nodes = append(nodes, &models.ClientDetails{
+				NodeDetails: n,
+			})
+		}
+
+		sort.Slice(otherClients, func(i, j int) bool {
+			return otherClients[i].ClientID < otherClients[j].ClientID
+		})
+
+		sort.Slice(nodes, func(i, j int) bool {
+			ni, nj := nodes[i], nodes[j]
+			if ni.NodeDetails == nil && nj.NodeDetails != nil {
+				return true
+			}
+			if ni.NodeDetails != nil && nj.NodeDetails == nil {
+				return false
+			}
+			if ni.NodeDetails != nil && nj.NodeDetails != nil {
+				return ni.NodeDetails.NodeID < nj.NodeDetails.NodeID
+			}
+			return ni.ClientID < nj.ClientID
+		})
+
+		tmpl, err := web.GetHTMLTemplate("all_nodes")
+		if err != nil {
+			slog.Error("error loading all_nodes template", "error", err)
+		}
+
+		err = tmpl.ExecuteTemplate(w, "base", PageVariables{
+			ConnectedNodes: nodes,
+			OtherClients:   otherClients,
+			Alerts:         nil,
+		})
+		if err != nil {
+			slog.Error("error executing all_nodes template", "error", err)
 			http.Error(w, "Error parsing template", 500)
 		}
 	}

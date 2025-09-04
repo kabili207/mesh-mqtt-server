@@ -1,0 +1,56 @@
+{{define "title"}}All Nodes - WPAmesh{{end}}
+
+{{define "content"}}
+
+
+<div id="tables-example">
+    <h3>Connected Nodes</h3>
+    <table class="table--responsive">
+        <thead>
+            <tr>
+                <th>Node ID</th>
+                <th>Name</th>
+                <th>Proxy Type</th>
+                <th>Address</th>
+                <th>Downlink?</th>
+                <th>Valid <abbr title="gateway">GW</abbr>?</th>
+                <th>User</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .ConnectedNodes}}
+            <tr>
+                <td>{{if .NodeDetails}}{{.NodeDetails.NodeID}}{{end}}</td>
+                <td>{{.GetDisplayName}}</td>
+                <td>{{if .ProxyType}}{{.ProxyType}}{{else}}<i>n/a</i>{{end}}</td>
+                <td>{{if .ClientID}}{{.Address}}{{else}}<i>disconnected</i>{{end}}</td>
+                <td>{{if .IsVerified}}Yes{{else}}No{{end}}</td>
+                <td>{{if .IsValidGateway}}Yes{{else}}No{{end}}</td>
+                <td>{{.MqttUserName}}</td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+
+    <table class="table--responsive">
+        <h3>Other Connections</h3>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>User</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .OtherClients}}
+            <tr>
+                <td>{{.ClientID}}</td>
+                <td>{{.Address}}</td>
+                <td>{{.MqttUserName}}</td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+</div>
+
+{{end}}
