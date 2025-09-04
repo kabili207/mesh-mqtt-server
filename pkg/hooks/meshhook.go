@@ -215,10 +215,19 @@ func (h *MeshtasticHook) OnConnect(cl *mqtt.Client, pk packets.Packet) error {
 
 func (h *MeshtasticHook) TryVerifyNode(clientID string, force bool) {
 	h.clientLock.Lock()
-	defer h.clientLock.Unlock()
 	cd, ok := h.knownClients[clientID]
-	if ok && !cd.IsPendingVerification() && (!cd.IsVerified() || force) {
-		h.RequestNodeInfo(cd)
+	h.clientLock.Unlock()
+
+	if ok {
+		cd.RLock()
+		shouldReq := !cd.IsPendingVerification() && (!cd.IsVerified() || force)
+		cd.RUnlock()
+		if shouldReq {
+			cd.Lock()
+			defer cd.Unlock()
+			h.RequestNodeInfo(cd)
+			return
+		}
 	}
 }
 

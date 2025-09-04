@@ -18,6 +18,7 @@ type MeshMqttServer interface {
 }
 
 type ClientDetails struct {
+	sync.RWMutex
 	MqttUserName   string
 	UserID         int
 	ClientID       string
@@ -27,8 +28,6 @@ type ClientDetails struct {
 	RootTopic      string
 	VerifyPacketID uint32
 	VerifyReqTime  *time.Time
-
-	VerifyLock sync.RWMutex
 }
 
 type NodeInfo struct {
