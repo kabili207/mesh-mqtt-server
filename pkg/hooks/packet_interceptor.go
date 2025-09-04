@@ -75,6 +75,9 @@ func (h *MeshtasticHook) processMeshPacket(client *models.ClientDetails, env *pb
 
 func (h *MeshtasticHook) checkPacketVerification(client *models.ClientDetails, env *pb.ServiceEnvelope, data *pb.Data) {
 
+	if client == nil || !client.IsMeshDevice() {
+		return
+	}
 	pkt := env.GetPacket()
 	if pkt == nil {
 		return
