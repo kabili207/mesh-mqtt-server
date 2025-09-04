@@ -13,6 +13,7 @@ import (
 	"github.com/mochi-mqtt/server/v2/hooks/auth"
 	"github.com/mochi-mqtt/server/v2/packets"
 
+	"github.com/kabili207/mesh-mqtt-server/pkg/config"
 	"github.com/kabili207/mesh-mqtt-server/pkg/meshtastic"
 	pb "github.com/kabili207/mesh-mqtt-server/pkg/meshtastic/generated"
 	"github.com/kabili207/mesh-mqtt-server/pkg/models"
@@ -40,11 +41,9 @@ var (
 
 // Options contains configuration settings for the hook.
 type MeshtasticHookOptions struct {
-	Server  *mqtt.Server
-	Storage *store.Stores
-	NodeID  meshtastic.NodeID
-
-	LongName, ShortName string
+	Server       *mqtt.Server
+	Storage      *store.Stores
+	MeshSettings config.MeshSettings
 }
 
 var _ models.MeshMqttServer = (*MeshtasticHook)(nil)
@@ -320,9 +319,9 @@ func (h *MeshtasticHook) RequestNodeInfo(client *models.ClientDetails) {
 
 	unmess := true
 	nodeInfo := pb.User{
-		Id:         h.config.NodeID.String(),
-		LongName:   h.config.LongName,
-		ShortName:  h.config.ShortName,
+		Id:         h.config.MeshSettings.SelfNode.NodeID.String(),
+		LongName:   h.config.MeshSettings.SelfNode.LongName,
+		ShortName:  h.config.MeshSettings.SelfNode.ShortName,
 		IsLicensed: false,
 		HwModel:    pb.HardwareModel_PRIVATE_HW,
 		Role:       pb.Config_DeviceConfig_CLIENT_MUTE,

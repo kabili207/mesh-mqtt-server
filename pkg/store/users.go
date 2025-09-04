@@ -15,6 +15,7 @@ type UserStore interface {
 	GetByUserName(username string) (*models.User, error)
 	GetByDiscordID(id int64) (*models.User, error)
 	SetDisplayName(user *models.User) error
+	AddUser(user *models.User) error
 	IsSuperuser(id int) (bool, error)
 }
 
@@ -61,12 +62,28 @@ func (b *postgresUserStore) GetByDiscordID(id int64) (*models.User, error) {
 
 func (b *postgresUserStore) SetDisplayName(user *models.User) error {
 	stmt := `
-	UPDATE mqtt_user
+	UPDATE users
 	SET display_name = :display_name
 	WHERE id = :id;
 	`
 
 	_, err := b.db.NamedExec(stmt, user)
+	return err
+}
+
+func (b *postgresUserStore) AddUser(user *models.User) error {
+	stmt := `
+	INSERT INTO users (display_name, discord_id, mqtt_user, password_hash, salt)
+	VALUES (:display_name, :discord_id, :mqtt_user, :password_hash, :salt);
+	`
+
+	_, err := b.db.NamedExec(stmt, user)
+	if err != nil {
+		return err
+	}
+	// Not supported by postgres driver, call GetByUserName or GetByDiscordID instead
+	//id, err := res.LastInsertId()
+	//user.ID = int(id)
 	return err
 }
 

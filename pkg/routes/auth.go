@@ -184,10 +184,29 @@ func (wr *WebRouter) getDiscordGuildStatus(token *oauth2.Token) (bool, error) {
 	return !*dm.Pending, nil
 }
 
+func createMqttUsername(discordUser string) string {
+
+	s := []byte(discordUser)
+	j := 0
+	for _, b := range s {
+		if ('a' <= b && b <= 'z') ||
+			('A' <= b && b <= 'Z') ||
+			('0' <= b && b <= '9') ||
+			b == '-' || b == '_' || b == '.' {
+			s[j] = b
+			j++
+		}
+	}
+	return fmt.Sprintf("mesht-%s", string(s[:j]))
+}
+
 func (wr *WebRouter) saveToken(gUser models.DiscordUser, token *oauth2.Token) (*models.User, error) {
 	discordID, err := strconv.ParseInt(gUser.ID, 10, 64)
 	if err != nil {
 		return nil, err
+	}
+	if gUser.Username == "" {
+		return nil, errors.New("discord user does not have a username")
 	}
 	dbToken, err := wr.storage.OAuthTokens.GetTokenForDiscordID(discordID)
 	switch err {
@@ -200,15 +219,27 @@ func (wr *WebRouter) saveToken(gUser models.DiscordUser, token *oauth2.Token) (*
 		dbToken.Expiration = &token.Expiry
 	case sql.ErrNoRows:
 		// TODO: Create a new user entry and set their MQTT details
-		userId, err := wr.storage.Users.GetByDiscordID(discordID)
-		//userId, err := storage.Users.SaveUser(&models.User{
-		//	DisplayName: gUser.Name,
-		//})
+		user, err := wr.storage.Users.GetByDiscordID(discordID)
+		if user == nil {
+			user = &models.User{
+				DisplayName: &gUser.Username,
+				DiscordID:   &discordID,
+				UserName:    createMqttUsername(gUser.Username),
+				// Force empty to prevent login until user sets it
+				PasswordHash: "",
+				Salt:         "",
+			}
+			err = wr.storage.Users.AddUser(user)
+			if err != nil {
+				return nil, err
+			}
+			user, err = wr.storage.Users.GetByDiscordID(discordID)
+		}
 		if err != nil {
 			return nil, err
 		}
 		dbToken = models.OAuthToken{
-			UserID:       userId.ID,
+			UserID:       user.ID,
 			TokenType:    &token.TokenType,
 			AccessToken:  &token.AccessToken,
 			RefreshToken: &token.RefreshToken,

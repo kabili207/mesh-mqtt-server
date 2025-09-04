@@ -116,7 +116,7 @@ func (c *MeshtasticHook) sendBytes(channel string, rootTopic string, rawInfo []b
 	pkt := pb.MeshPacket{
 		Id:       packetId,
 		To:       uint32(info.To),
-		From:     uint32(c.config.NodeID),
+		From:     uint32(c.config.MeshSettings.SelfNode.NodeID),
 		HopLimit: uint32(0),
 		HopStart: uint32(maxHops),
 		ViaMqtt:  false,
@@ -136,7 +136,7 @@ func (c *MeshtasticHook) sendBytes(channel string, rootTopic string, rawInfo []b
 			Decoded: &data,
 		}
 	case PSKEncryption:
-		encodedBytes, err := radio.XOR(rawData, key, packetId, uint32(c.config.NodeID))
+		encodedBytes, err := radio.XOR(rawData, key, packetId, uint32(c.config.MeshSettings.SelfNode.NodeID))
 		if err != nil {
 			return packetId, err
 		}
@@ -149,7 +149,7 @@ func (c *MeshtasticHook) sendBytes(channel string, rootTopic string, rawInfo []b
 
 	env := pb.ServiceEnvelope{
 		ChannelId: channel,
-		GatewayId: c.config.NodeID.String(),
+		GatewayId: c.config.MeshSettings.SelfNode.NodeID.String(),
 		Packet:    &pkt,
 	}
 
@@ -163,7 +163,7 @@ func (c *MeshtasticHook) sendBytes(channel string, rootTopic string, rawInfo []b
 	// to transmit and receive
 	time.Sleep(200 * time.Millisecond)
 
-	topic := fmt.Sprintf("%s/2/e/%s/%s", rootTopic, channel, c.config.NodeID.String())
+	topic := fmt.Sprintf("%s/2/e/%s/%s", rootTopic, channel, c.config.MeshSettings.SelfNode.NodeID.String())
 	err = c.config.Server.Publish(topic, rawEnv, false, 0)
 
 	return packetId, err

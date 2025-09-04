@@ -47,6 +47,16 @@ func (n NodeID) GetDefaultNodeNames() (longName, shortName string) {
 	return
 }
 
+// UnmarshalText decodes the string representation of a node.
+// This is used by Viper during the config loading.
+//
+// https://sagikazarmark.hu/blog/decoding-custom-formats-with-viper/
+func (n *NodeID) UnmarshalText(text []byte) error {
+	v, err := ParseNodeID(string(text))
+	*n = v
+	return err
+}
+
 func ParseNodeID(nodeID string) (NodeID, error) {
 	if nodeID == "^all" {
 		return NodeID(BROADCAST_ID), nil
