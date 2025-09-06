@@ -234,7 +234,7 @@ func (h *MeshtasticHook) TryVerifyNode(clientID string, force bool) {
 
 	if ok {
 		cd.RLock()
-		shouldReq := !cd.IsPendingVerification() && (!cd.IsVerified() || force)
+		shouldReq := !cd.IsPendingVerification() && (!cd.IsVerified() || cd.IsExpiringSoon() || force)
 		cd.RUnlock()
 		if shouldReq {
 			cd.Lock()

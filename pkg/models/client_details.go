@@ -74,6 +74,10 @@ func (c *ClientDetails) IsPendingVerification() bool {
 	return false
 }
 
+func (c *ClientDetails) IsExpiringSoon() bool {
+	return c.NodeDetails == nil || c.NodeDetails.IsExpiringSoon()
+}
+
 func (c *ClientDetails) IsVerified() bool {
 	return c.NodeDetails != nil && c.NodeDetails.IsVerified()
 }
@@ -125,4 +129,12 @@ func (c *NodeInfo) IsVerified() bool {
 		return time.Now().Before(expireDate)
 	}
 	return false
+}
+
+func (c *NodeInfo) IsExpiringSoon() bool {
+	if c.VerifiedDate != nil {
+		expireDate := c.VerifiedDate.Add(MaxValidationAge / 3)
+		return time.Now().Before(expireDate)
+	}
+	return true
 }
