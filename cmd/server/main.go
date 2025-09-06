@@ -135,11 +135,16 @@ func main() {
 
 func setupDatabase(config cfg.Configuration) (*sqlx.DB, error) {
 	// change "postgres" for whatever supported database you want to use
+
+	opts := url.Values{}
+	opts.Add("binary_parameters", "yes")
+
 	dbUrl := url.URL{
-		Scheme: "postgres",
-		Host:   config.Database.Host,
-		Path:   config.Database.DB,
-		User:   url.UserPassword(config.Database.User, config.Database.Password),
+		Scheme:   "postgres",
+		Host:     config.Database.Host,
+		Path:     config.Database.DB,
+		User:     url.UserPassword(config.Database.User, config.Database.Password),
+		RawQuery: opts.Encode(),
 	}
 
 	db, err := sqlx.Open("postgres", dbUrl.String())
