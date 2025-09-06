@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sort"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/kabili207/mesh-mqtt-server/internal/web"
@@ -89,11 +90,23 @@ func (wr *WebRouter) handleRequests(listenAddr string) error {
 	myRouter.HandleFunc("/auth/discord/callback", wr.discordCallbackHandler)
 	myRouter.PathPrefix("/static").Handler(http.FileServerFS(web.ContentFS))
 
-	return http.ListenAndServe(listenAddr, myRouter)
+	myRouter.Use(handlers.ProxyHeaders)
+	myRouter.Use(RequestLogger)
+	h := handlers.RecoveryHandler()
+
+	return http.ListenAndServe(listenAddr, h(myRouter))
+}
+
+func RequestLogger(h http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("endpoint hit", "method", r.Method, "path", r.URL.Path, "remote_host", r.RemoteAddr, "user_agent", r.UserAgent())
+		// Call the next handler in the chain.
+		h.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(fn)
 }
 
 func (wr *WebRouter) loginPage(w http.ResponseWriter, r *http.Request) {
-	slog.Debug("endpoint hit", "endpoint", "loginPage")
 
 	session, err := wr.getSession(r)
 	user, err := wr.getUser(session)
@@ -120,7 +133,6 @@ func (wr *WebRouter) loginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (wr *WebRouter) homePage(w http.ResponseWriter, r *http.Request) {
-	slog.Debug("endpoint hit", "endpoint", "homePage")
 	session, _ := wr.getSession(r)
 	user, err := wr.getUser(session)
 	if err != nil || user == nil {
@@ -186,7 +198,6 @@ func (wr *WebRouter) homePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (wr *WebRouter) allNodes(w http.ResponseWriter, r *http.Request) {
-	slog.Debug("endpoint hit", "endpoint", "homePage")
 	session, _ := wr.getSession(r)
 	user, err := wr.getUser(session)
 	if err != nil || user == nil {

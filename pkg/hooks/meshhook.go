@@ -159,10 +159,12 @@ func (h *MeshtasticHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packe
 			Address:      cl.Net.Remote,
 		}
 		h.clientLock.Unlock()
-		h.Log.Info("client authenticated", "username", user, "client", clientID, "node", nodeDetails, "proxy", proxyType)
-
 		if nodeDetails != nil {
+			h.Log.Info("client authenticated", "username", user, "client", clientID, "node", nodeDetails.GetDisplayName(), "proxy", proxyType)
 			go h.TryVerifyNode(cl.ID, false)
+		} else {
+
+			h.Log.Info("client authenticated", "username", user, "client", clientID, "proxy", proxyType)
 		}
 	}
 	if validatedUser == nil {

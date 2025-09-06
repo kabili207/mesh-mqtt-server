@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -77,12 +77,13 @@ func (wr *WebRouter) discordCallbackHandler(w http.ResponseWriter, r *http.Reque
 	session, err := wr.sessionStore.Get(r, sessionName)
 	if err != nil {
 		fmt.Fprint(w, err.Error())
+		slog.Error("error loading user session", "error", err)
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 	data, err := wr.getUserDataFromDiscord(code, r)
 	if err != nil {
-		log.Println(err.Error())
+		slog.Error("error fetching user data from token", "error", err)
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
@@ -91,9 +92,10 @@ func (wr *WebRouter) discordCallbackHandler(w http.ResponseWriter, r *http.Reque
 
 	if err != nil {
 		fmt.Fprint(w, err.Error())
+		slog.Error("saving session", "error", err)
 	}
 
-	log.Printf("User authenticated: %v", data)
+	slog.Info("user authenticated", "user", data.UserName)
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 }
 
@@ -151,7 +153,7 @@ func (wr *WebRouter) getAuthEndpoint(url string, token *oauth2.Token) ([]byte, e
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("Error on response.\n[ERROR] -", err)
+		slog.Error("error calling authenticated endpoint", "error", err)
 	}
 	defer resp.Body.Close()
 
