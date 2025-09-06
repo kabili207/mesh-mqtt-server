@@ -188,17 +188,15 @@ func (h *MeshtasticHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) b
 		return false
 	}
 
-	if isSU, _ := h.config.Storage.Users.IsSuperuser(cd.UserID); isSU {
-		return true
-	}
+	isSU, _ := h.config.Storage.Users.IsSuperuser(cd.UserID)
 
-	if sysFilter.FilterMatches(topic) {
+	if !isSU && sysFilter.FilterMatches(topic) {
 		return false
 	}
 
 	if !cd.IsMeshDevice() {
 		// Non-mesh devices are only allowed to read
-		return !write
+		return isSU || !write
 	}
 
 	if topic == "will" || topic == "/will" {
@@ -211,9 +209,9 @@ func (h *MeshtasticHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) b
 		return false
 	}
 
-	// Anyone else is assumed to be able to read and write.
-	// Later packet processing will handle topic redirection for non-gateways
-	return true
+	// Any clients left should be a node, which are always allowed to write.
+	// Gateway validation is done elsewhere, so it's safe to allow anyone to read.
+	return write || gatewayRegex.MatchString(topic)
 }
 
 // subscribeCallback handles messages for subscribed topics
