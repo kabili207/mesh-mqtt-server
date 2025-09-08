@@ -68,7 +68,7 @@ func (c *ClientDetails) SetVerificationPending(packetID uint32) {
 
 func (c *ClientDetails) IsPendingVerification() bool {
 	if c.VerifyReqTime != nil {
-		expireDate := c.VerifyReqTime.Add(5 * time.Minute)
+		expireDate := c.VerifyReqTime.Add(15 * time.Minute)
 		return time.Now().Before(expireDate)
 	}
 	return false

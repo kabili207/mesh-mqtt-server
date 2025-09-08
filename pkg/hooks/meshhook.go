@@ -24,7 +24,8 @@ const (
 	meshDevicePattern   = `^(?:Meshtastic(Android|Apple)MqttProxy-)?(![0-9a-f]{8})$`
 	unknownProxyPattern = `^Meshtastic(Android|Apple)MqttProxy-(.+)$`
 	channelPattern      = `^(msh(?:\/[^\/\n]+?)*)\/2\/e\/(\w+)\/(![a-f0-9]{8})$`
-	gatewayPattern      = `^(msh(?:\/[^\/\n]+?)*)(\/Gateway)\/2\/e\/(\w+)\/(![a-f0-9]{8})$`
+	gatewayTopicPattern = `^(msh(?:\/[^\/\n]+?)*)(\/Gateway)\/2\/e\/(\w+)\/(![a-f0-9]{8})$`
+	gatewaySubPattern   = `^(msh(?:\/[^\/\n]+?|\+)*)(\/Gateway)((\/[^\/\n]+?|\+){4}|\/\#)$`
 	gatewayReplacement  = `$1/2/e/$3/$4`
 
 	meshFilter auth.RString = `msh/#`
@@ -35,7 +36,8 @@ var (
 	meshDeviceRegex   = regexp.MustCompile(meshDevicePattern)
 	unknownProxyRegex = regexp.MustCompile(unknownProxyPattern)
 	channelRegex      = regexp.MustCompile(channelPattern)
-	gatewayRegex      = regexp.MustCompile(gatewayPattern)
+	gatewayTopicRegex = regexp.MustCompile(gatewayTopicPattern)
+	gatewaySubRegex   = regexp.MustCompile(gatewaySubPattern)
 )
 
 // Options contains configuration settings for the hook.
@@ -211,7 +213,9 @@ func (h *MeshtasticHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) b
 
 	// Any clients left should be a node, which are always allowed to write.
 	// Gateway validation is done elsewhere, so it's safe to allow anyone to read.
-	return write || gatewayRegex.MatchString(topic)
+	isAllowed := gatewayTopicRegex.MatchString(topic) || gatewaySubRegex.MatchString(topic)
+	//h.Log.Info("Gateway read check:", "client", cd.ClientID, "is_write", write, "gatewayTopic", isAllowed, "topic", topic)
+	return write || isAllowed
 }
 
 // subscribeCallback handles messages for subscribed topics
@@ -302,10 +306,10 @@ func (h *MeshtasticHook) OnPublish(cl *mqtt.Client, pk packets.Packet) (packets.
 }
 
 func (h *MeshtasticHook) RewriteTopicIfGateway(cd *models.ClientDetails, topic string) string {
-	matches := gatewayRegex.FindStringSubmatch(topic)
+	matches := gatewayTopicRegex.FindStringSubmatch(topic)
 	if len(matches) > 0 {
 		h.Log.Warn("redirecting to non-gateway topic", "username", cd.MqttUserName, "client", cd.ClientID, "topic", topic)
-		topic = gatewayRegex.ReplaceAllString(topic, gatewayReplacement)
+		topic = gatewayTopicRegex.ReplaceAllString(topic, gatewayReplacement)
 	}
 	return topic
 }
