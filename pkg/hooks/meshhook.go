@@ -38,6 +38,20 @@ var (
 	channelRegex      = regexp.MustCompile(channelPattern)
 	gatewayTopicRegex = regexp.MustCompile(gatewayTopicPattern)
 	gatewaySubRegex   = regexp.MustCompile(gatewaySubPattern)
+
+	// Allowed suffixes for concrete publish topics.
+	publishSuffixes = [][]string{
+		{"Gateway", "2", "e", "+", "+"},
+		{"Gateway", "2", "map", ""},
+	}
+
+	// Allowed suffixes for subscriptions (includes publishSuffixes plus # variants).
+	subscribeSuffixes = [][]string{
+		{"Gateway", "2", "e", "+", "+"},
+		{"Gateway", "2", "map", ""},
+		{"Gateway", "#"},
+		{"Gateway", "2", "#"},
+	}
 )
 
 // Options contains configuration settings for the hook.
@@ -213,9 +227,64 @@ func (h *MeshtasticHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) b
 
 	// Any clients left should be a node, which are always allowed to write.
 	// Gateway validation is done elsewhere, so it's safe to allow anyone to read.
-	isAllowed := gatewayTopicRegex.MatchString(topic) || gatewaySubRegex.MatchString(topic)
+	isAllowed := checkGatewayACL(topic, write)
 	//h.Log.Info("Gateway read check:", "client", cd.ClientID, "is_write", write, "gatewayTopic", isAllowed, "topic", topic)
 	return write || isAllowed
+}
+
+func checkGatewayACL(topic string, write bool) bool {
+	if !strings.HasPrefix(topic, "msh/") {
+		return false
+	}
+
+	levels := strings.Split(topic, "/")
+
+	// Validate wildcards
+	hashCount := 0
+	for i, lvl := range levels {
+		if strings.Contains(lvl, "+") && lvl != "+" {
+			// "+" must be its own level
+			return false
+		}
+		if lvl == "#" {
+			hashCount++
+			if i != len(levels)-1 {
+				return false // "#" not at the end
+			}
+		}
+	}
+	if hashCount > 1 {
+		return false
+	}
+
+	// Helper: does topic end with suffix (with + or # treated as wildcard)?
+	matchesSuffix := func(suffix []string) bool {
+		if len(levels) < len(suffix) {
+			return false
+		}
+		start := len(levels) - len(suffix)
+		for i, s := range suffix {
+			if s == "+" || s == "#" {
+				continue // wildcard matches anything
+			}
+			if levels[start+i] != s {
+				return false
+			}
+		}
+		return true
+	}
+
+	suffixes := publishSuffixes
+	if !write {
+		suffixes = subscribeSuffixes
+	}
+
+	for _, suffix := range suffixes {
+		if matchesSuffix(suffix) {
+			return true
+		}
+	}
+	return false
 }
 
 // subscribeCallback handles messages for subscribed topics
