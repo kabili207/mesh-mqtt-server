@@ -27,6 +27,10 @@
                 <td>{{if .IsVerified}}Yes{{else}}No{{end}}</td>
                 <td>{{if .IsValidGateway}}Yes{{else}}No{{end}}</td>
                 <td>{{.MqttUserName}}</td>
+                <!-- Validation errors: {{ range .GetValidationErrors }}
+                    {{ . }}
+                    {{ end }}
+                -->
             </tr>
             {{ end }}
         </tbody>

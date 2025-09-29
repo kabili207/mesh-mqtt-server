@@ -222,12 +222,13 @@ func (wr *WebRouter) allNodes(w http.ResponseWriter, r *http.Request) {
 				otherClients = append(otherClients, c)
 			}
 		}
-		offlineNodes, err := wr.storage.NodeDB.GetAllExceptNodeIDs(knownNodes)
-		for _, n := range offlineNodes {
-			nodes = append(nodes, &models.ClientDetails{
-				NodeDetails: n,
-			})
-		}
+		// TODO: Add a filter parameter to optionally include offline nodes
+		//offlineNodes, err := wr.storage.NodeDB.GetAllExceptNodeIDs(knownNodes)
+		//for _, n := range offlineNodes {
+		//	nodes = append(nodes, &models.ClientDetails{
+		//		NodeDetails: n,
+		//	})
+		//}
 
 		sort.Slice(otherClients, func(i, j int) bool {
 			return otherClients[i].ClientID < otherClients[j].ClientID
