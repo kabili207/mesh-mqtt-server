@@ -144,7 +144,7 @@ func (h *MeshtasticHook) processNodeInfo(c *models.ClientDetails, env *pb.Servic
 	c.NodeDetails.NodeRole = user.Role.String()
 	c.NodeDetails.LastSeen = radio.Ptr(time.Now())
 	save := true
-	if !c.IsVerified() || c.IsExpiringSoon() {
+	if !c.IsDownlinkVerified() || c.IsExpiringSoon() {
 		if !c.IsPendingVerification() {
 			go h.TryVerifyNode(c.ClientID, false)
 		} else {

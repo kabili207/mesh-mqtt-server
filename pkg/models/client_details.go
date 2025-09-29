@@ -60,6 +60,20 @@ func (c *ClientDetails) GetDisplayName() string {
 	return c.ClientID
 }
 
+func (c *ClientDetails) GetLongName() string {
+	if c.NodeDetails != nil {
+		return c.NodeDetails.GetSafeLongName()
+	}
+	return "unknown"
+}
+
+func (c *ClientDetails) GetShortName() string {
+	if c.NodeDetails != nil {
+		return c.NodeDetails.GetSafeShortName()
+	}
+	return ""
+}
+
 func (c *ClientDetails) SetVerificationPending(packetID uint32) {
 	c.VerifyPacketID = packetID
 	if packetID == 0 {
@@ -82,8 +96,8 @@ func (c *ClientDetails) IsExpiringSoon() bool {
 	return c.NodeDetails == nil || c.NodeDetails.IsExpiringSoon()
 }
 
-func (c *ClientDetails) IsVerified() bool {
-	return c.NodeDetails != nil && c.NodeDetails.IsVerified()
+func (c *ClientDetails) IsDownlinkVerified() bool {
+	return c.NodeDetails != nil && c.NodeDetails.IsDownlinkVerified()
 }
 
 func (c *ClientDetails) IsUsingGatewayTopic() bool {
@@ -95,7 +109,7 @@ func (c *ClientDetails) IsValidGateway() bool {
 	if c.ValidGWChecker != nil {
 		extValid = c.ValidGWChecker()
 	}
-	return extValid && c.NodeDetails != nil && c.ProxyType == "" && c.IsVerified() &&
+	return extValid && c.NodeDetails != nil && c.ProxyType == "" && c.IsDownlinkVerified() &&
 		c.IsUsingGatewayTopic() && c.NodeDetails.NodeRole != "" &&
 		c.NodeDetails.NodeRole != pb.Config_DeviceConfig_CLIENT_MUTE.String() &&
 		c.NodeDetails.NodeRole != pb.Config_DeviceConfig_ROUTER_CLIENT.String()
@@ -131,7 +145,7 @@ func (c *ClientDetails) GetValidationErrors() []string {
 	}
 	if !c.IsUsingGatewayTopic() {
 		errs = append(errs, "Not using a gateway route topic")
-	} else if !c.IsVerified() {
+	} else if !c.IsDownlinkVerified() {
 		errs = append(errs, "Downlink over LongFast has not been verified")
 	}
 	if c.NodeDetails == nil {
@@ -155,7 +169,23 @@ func (c *NodeInfo) GetDisplayName() string {
 	return fmt.Sprintf("%s (%s)", long, short)
 }
 
-func (c *NodeInfo) IsVerified() bool {
+func (c *NodeInfo) GetSafeLongName() string {
+	if c.LongName != "" {
+		return c.LongName
+	}
+	long, _ := c.NodeID.GetDefaultNodeNames()
+	return long
+}
+
+func (c *NodeInfo) GetSafeShortName() string {
+	if c.ShortName != "" {
+		return c.ShortName
+	}
+	_, short := c.NodeID.GetDefaultNodeNames()
+	return short
+}
+
+func (c *NodeInfo) IsDownlinkVerified() bool {
 	if c.VerifiedDate != nil {
 		expireDate := c.VerifiedDate.Add(MaxValidationAge)
 		return time.Now().Before(expireDate)

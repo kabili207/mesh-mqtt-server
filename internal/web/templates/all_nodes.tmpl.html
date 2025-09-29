@@ -9,7 +9,7 @@
         <thead>
             <tr>
                 <th>Node ID</th>
-                <th>Name</th>
+                <th colspan="2">Name</th>
                 <th>Proxy Type</th>
                 <th>Address</th>
                 <th>Downlink?</th>
@@ -21,10 +21,11 @@
             {{ range .ConnectedNodes}}
             <tr>
                 <td>{{if .NodeDetails}}{{.NodeDetails.NodeID}}{{end}}</td>
-                <td>{{.GetDisplayName}}</td>
+                <td>{{.GetShortName}}</td>
+                <td>{{.GetLongName}}</td>
                 <td>{{if .ProxyType}}{{.ProxyType}}{{else}}<i>n/a</i>{{end}}</td>
-                <td>{{if .ClientID}}{{.Address}}{{else}}<i>disconnected</i>{{end}}</td>
-                <td>{{if .IsVerified}}Yes{{else}}No{{end}}</td>
+                <td>{{if .Address}}{{.GetIPAddress}}{{else}}<i>disconnected</i>{{end}}</td>
+                <td>{{if .IsDownlinkVerified}}Yes{{else}}No{{end}}</td>
                 <td>{{if .IsValidGateway}}Yes{{else}}No{{end}}</td>
                 <td>{{.MqttUserName}}</td>
                 <!-- Validation errors: {{ range .GetValidationErrors }}
