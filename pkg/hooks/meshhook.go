@@ -263,7 +263,7 @@ func (h *MeshtasticHook) checkGatewayACL(cd *models.ClientDetails, topic string,
 			if pubID == h.config.MeshSettings.SelfNode.NodeID || cd.IsValidGateway() {
 				return true
 			}
-			h.Log.Info("Not forwarding packet to invalid gateway:", "client", cd.ClientID, "topic", topic)
+			h.Log.Debug("Not forwarding packet to invalid gateway:", "client", cd.ClientID, "topic", topic)
 			return false
 		}
 	}
