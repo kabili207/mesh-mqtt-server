@@ -22,17 +22,21 @@ type MeshMqttServer interface {
 
 type ClientDetails struct {
 	sync.RWMutex
-	MqttUserName   string
-	UserID         int
-	ClientID       string
-	NodeDetails    *NodeInfo
-	ProxyType      string
-	Address        string
-	RootTopic      string
-	VerifyPacketID uint32
-	VerifyReqTime  *time.Time
-	InvalidPackets int
-	ValidGWChecker func() bool
+	MqttUserName            string
+	UserID                  int
+	ClientID                string
+	NodeDetails             *NodeInfo
+	ProxyType               string
+	Address                 string
+	RootTopic               string
+	VerifyPacketID          uint32
+	VerifyReqTime           *time.Time
+	InvalidPackets          int
+	ValidGWChecker          func() bool
+	// Cached permissions with expiry - revalidated after TTL
+	cachedIsSuperuser       bool
+	cachedIsGatewayAllowed  bool
+	permissionsCachedAt     time.Time
 }
 
 type NodeInfo struct {
@@ -204,4 +208,29 @@ func (c *NodeInfo) IsExpiringSoon() bool {
 func (n *NodeInfo) GetNodeColor() string {
 	r, g, b := n.NodeID.GetNodeColor()
 	return fmt.Sprintf("%d, %d, %d", r, g, b)
+}
+
+// Permission cache TTL - match the user store's 15 minute TTL
+const PermissionCacheTTL = 15 * time.Minute
+
+// GetCachedPermissions returns cached permissions if still valid, or (false, false, false) if expired
+func (c *ClientDetails) GetCachedPermissions() (isSuperuser, isGatewayAllowed, valid bool) {
+	c.RLock()
+	defer c.RUnlock()
+
+	if time.Since(c.permissionsCachedAt) > PermissionCacheTTL {
+		return false, false, false
+	}
+
+	return c.cachedIsSuperuser, c.cachedIsGatewayAllowed, true
+}
+
+// SetCachedPermissions updates the cached permissions with current timestamp
+func (c *ClientDetails) SetCachedPermissions(isSuperuser, isGatewayAllowed bool) {
+	c.Lock()
+	defer c.Unlock()
+
+	c.cachedIsSuperuser = isSuperuser
+	c.cachedIsGatewayAllowed = isGatewayAllowed
+	c.permissionsCachedAt = time.Now()
 }

@@ -139,10 +139,28 @@ func (h *MeshtasticHook) processNodeInfo(c *models.ClientDetails, env *pb.Servic
 		return
 	}
 	c.SyncUserID()
+
+	// Track if node role changed (affects gateway validation)
+	oldRole := c.NodeDetails.NodeRole
+	wasValidGateway := c.IsValidGateway()
+
 	c.NodeDetails.LongName = user.LongName
 	c.NodeDetails.ShortName = user.ShortName
 	c.NodeDetails.NodeRole = user.Role.String()
 	c.NodeDetails.LastSeen = radio.Ptr(time.Now())
+
+	// Log if role changed (important for gateway validation)
+	if oldRole != "" && oldRole != c.NodeDetails.NodeRole {
+		isValidGateway := c.IsValidGateway()
+		h.Log.Info("node role changed",
+			"node", c.NodeDetails.NodeID,
+			"client", c.ClientID,
+			"old_role", oldRole,
+			"new_role", c.NodeDetails.NodeRole,
+			"was_valid_gateway", wasValidGateway,
+			"is_valid_gateway", isValidGateway)
+	}
+
 	save := true
 	if !c.IsDownlinkVerified() || c.IsExpiringSoon() {
 		if !c.IsPendingVerification() {

@@ -167,8 +167,12 @@ func (h *MeshtasticHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packe
 			proxyType = matches[1]
 			//nodeID = matches[2]
 		}
+		// Query permissions once at authentication time
+		isSuperuser, _ := h.config.Storage.Users.IsSuperuser(validatedUser.ID)
+		isGatewayAllowed, _ := h.config.Storage.Users.IsGatewayAllowed(validatedUser.ID)
+
 		h.clientLock.Lock()
-		h.knownClients[clientID] = &models.ClientDetails{
+		cd := &models.ClientDetails{
 			MqttUserName:   user,
 			ClientID:       clientID,
 			UserID:         validatedUser.ID,
@@ -177,6 +181,9 @@ func (h *MeshtasticHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packe
 			Address:        cl.Net.Remote,
 			ValidGWChecker: h.makeGatewayValidator(validatedUser.ID),
 		}
+		// Cache permissions with TTL
+		cd.SetCachedPermissions(isSuperuser, isGatewayAllowed)
+		h.knownClients[clientID] = cd
 		h.clientLock.Unlock()
 		if nodeDetails != nil {
 			h.Log.Info("client authenticated", "username", user, "client", clientID, "node", nodeDetails.GetDisplayName(), "proxy", proxyType)
@@ -217,15 +224,46 @@ func (h *MeshtasticHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) b
 		return false
 	}
 
-	isSU, _ := h.config.Storage.Users.IsSuperuser(cd.UserID)
+	// Try to use cached permissions first
+	isSU, _, valid := cd.GetCachedPermissions()
+	if !valid {
+		// Cache expired, refresh from DB and update cache
+		var err error
+		isSU, err = h.config.Storage.Users.IsSuperuser(cd.UserID)
+		if err != nil {
+			h.Log.Warn("error checking superuser status", "user_id", cd.UserID, "error", err)
+			isSU = false
+		}
+
+		isGW, err := h.config.Storage.Users.IsGatewayAllowed(cd.UserID)
+		if err != nil {
+			h.Log.Warn("error checking gateway permission", "user_id", cd.UserID, "error", err)
+			isGW = false
+		}
+
+		cd.SetCachedPermissions(isSU, isGW)
+	}
 
 	if sysFilter.FilterMatches(topic) {
+		if !isSU {
+			h.Log.Warn("ACL denied: non-superuser accessing $SYS topic",
+				"client", cl.ID,
+				"user", cd.MqttUserName,
+				"topic", topic)
+		}
 		return isSU
 	}
 
 	if !cd.IsMeshDevice() {
 		// Non-mesh devices are only allowed to read, unless they are superuser
-		return isSU || !write
+		allowed := isSU || !write
+		if !allowed {
+			h.Log.Warn("ACL denied: non-mesh device attempting write",
+				"client", cl.ID,
+				"user", cd.MqttUserName,
+				"topic", topic)
+		}
+		return allowed
 	}
 
 	if topic == "will" || topic == "/will" {
@@ -241,8 +279,18 @@ func (h *MeshtasticHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) b
 	// Any clients left should be a node, which are always allowed to write.
 	// Gateway validation is done elsewhere, so it's safe to allow anyone to read.
 	isAllowed := h.checkGatewayACL(cd, topic, write)
-	//h.Log.Info("Gateway read check:", "client", cd.ClientID, "is_write", write, "gatewayTopic", isAllowed, "topic", topic)
-	return write || isAllowed
+	result := write || isAllowed
+
+	if !result {
+		h.Log.Warn("ACL denied: gateway check failed",
+			"client", cl.ID,
+			"user", cd.MqttUserName,
+			"topic", topic,
+			"write", write,
+			"is_valid_gateway", cd.IsValidGateway())
+	}
+
+	return result
 }
 
 func (h *MeshtasticHook) checkGatewayACL(cd *models.ClientDetails, topic string, write bool) bool {
