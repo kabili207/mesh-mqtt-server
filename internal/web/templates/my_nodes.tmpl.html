@@ -171,52 +171,59 @@
 {{end}}
 
 <div id="tables-example">
-    <h3>Connected Nodes</h3>
-    <table class="table--responsive">
+    <div class="table-controls">
+        <h3>Connected Nodes</h3>
+        <div class="filter-controls">
+            <label><input type="checkbox" id="filter-connected" checked> Connected Only</label>
+            <label><input type="checkbox" id="filter-mesh"> Mesh Devices Only</label>
+            <label><input type="checkbox" id="filter-gateway"> Valid Gateways Only</label>
+        </div>
+    </div>
+    <table class="table--responsive" id="nodes-table">
         <thead>
             <tr>
                 <th>Node ID</th>
-                <th colspan="2">Name</th>
+                <th>Short Name</th>
+                <th>Long Name</th>
+                <th>Role</th>
                 <th>Proxy Type</th>
                 <th>Address</th>
+                <th>Root Topic</th>
+                <th>Last Seen</th>
                 <th>Downlink?</th>
                 <th>Valid <abbr title="gateway">GW</abbr>?</th>
             </tr>
         </thead>
-        <tbody>
-
-        {{ range .ConnectedNodes}}
-        <tr>
-            <td>{{if .NodeDetails}}{{.NodeDetails.NodeID}}{{end}}</td>
-            <td>{{.GetShortName}}</td>
-            <td>{{.GetLongName}}</td>
-            <td>{{if .ProxyType}}{{.ProxyType}}{{else}}<i>none</i>{{end}}</td>
-            <td>{{if .Address}}{{.GetIPAddress}}{{else}}<i>disconnected</i>{{end}}</td>
-            <td>{{if .IsDownlinkVerified}}Yes{{else}}No{{end}}</td>
-            <td>{{if .IsValidGateway}}Yes{{else}}No{{end}}</td>
-        </tr>
-        {{ end }}
+        <tbody id="nodes-tbody">
+            <tr>
+                <td colspan="10" class="loading-message">Loading...</td>
+            </tr>
         </tbody>
     </table>
 
-    <table class="table--responsive">
-        <h3>Other Connections</h3>
+    <h3>Other Connections</h3>
+    <table class="table--responsive" id="other-clients-table">
         <thead>
             <tr>
-                <th>Name</th>
+                <th>Client ID</th>
                 <th>Address</th>
+                <th>Root Topic</th>
             </tr>
         </thead>
-        <tbody>
-
-        {{ range .OtherClients}}
-        <tr>
-            <td>{{.ClientID}}</td>
-            <td>{{.Address}}</td>
-        </tr>
-        {{ end }}
+        <tbody id="other-clients-tbody">
+            <tr>
+                <td colspan="3" class="loading-message">Loading...</td>
+            </tr>
         </tbody>
     </table>
 </div>
+
+<script>
+    // Initialize node loading on page load
+    window.isAdmin = false; // Regular user page
+    if (typeof loadNodes === 'function') {
+        loadNodes(window.isAdmin);
+    }
+</script>
 
 {{end}}

@@ -350,3 +350,69 @@ html * {
     width: 100%;
   }
 }
+
+/* Node Table Filters and Controls */
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.table-controls h3 {
+  margin: 0;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.filter-controls input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 2rem !important;
+  font-style: italic;
+  color: #666;
+}
+
+.error-message {
+  text-align: center;
+  padding: 2rem !important;
+  color: var(--mg-color-red);
+}
+
+/* Highlight rows with validation errors */
+tr.has-errors {
+  background-color: #fff3cd;
+}
+
+tr.has-errors:hover {
+  background-color: #ffe69c;
+}
+
+@media only screen and (max-width:768px) {
+  .table-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filter-controls {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}

@@ -105,6 +105,7 @@ func (wr *WebRouter) handleRequests(listenAddr string) error {
 	myRouter.HandleFunc("/all-nodes", wr.allNodes)
 	myRouter.HandleFunc("/login", wr.loginPage)
 	myRouter.HandleFunc("/api/set-mqtt-password", wr.setMqttPassword).Methods("POST")
+	myRouter.HandleFunc("/api/nodes", wr.getNodes).Methods("GET")
 	myRouter.HandleFunc("/auth/logout", wr.userLogoutHandler)
 	myRouter.HandleFunc("/auth/discord/login", wr.discordLoginHandler)
 	myRouter.HandleFunc("/auth/discord/callback", wr.discordCallbackHandler)
@@ -290,6 +291,17 @@ func (wr *WebRouter) allNodes(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (wr *WebRouter) getUserDisplay(mqttUsername string) string {
+	user, err := wr.storage.Users.GetByUserName(mqttUsername)
+	if err != nil || user == nil {
+		return mqttUsername
+	}
+	if user.DisplayName != nil && *user.DisplayName != "" {
+		return *user.DisplayName
+	}
+	return mqttUsername
+}
+
 func (wr *WebRouter) getMqttConfig(user *models.User) *MqttConfigData {
 	if user == nil {
 		return nil
@@ -324,6 +336,30 @@ type SetPasswordRequest struct {
 type SetPasswordResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
+}
+
+type NodeResponse struct {
+	NodeID           string    `json:"node_id"`
+	ShortName        string    `json:"short_name"`
+	LongName         string    `json:"long_name"`
+	ProxyType        string    `json:"proxy_type"`
+	Address          string    `json:"address"`
+	RootTopic        string    `json:"root_topic"`
+	NodeRole         string    `json:"node_role,omitempty"`
+	HwModel          string    `json:"hw_model,omitempty"`
+	LastSeen         *string   `json:"last_seen,omitempty"`
+	IsDownlink       bool      `json:"is_downlink"`
+	IsValidGateway   bool      `json:"is_valid_gateway"`
+	IsConnected      bool      `json:"is_connected"`
+	IsMeshDevice     bool      `json:"is_mesh_device"`
+	ClientID         string    `json:"client_id"`
+	UserDisplay      string    `json:"user_display,omitempty"`
+	ValidationErrors []string  `json:"validation_errors,omitempty"`
+}
+
+type NodesResponse struct {
+	Nodes        []NodeResponse `json:"nodes"`
+	OtherClients []NodeResponse `json:"other_clients"`
 }
 
 func (wr *WebRouter) setMqttPassword(w http.ResponseWriter, r *http.Request) {
@@ -364,5 +400,171 @@ func (wr *WebRouter) setMqttPassword(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(SetPasswordResponse{
 		Success: true,
 		Message: "Password set successfully",
+	})
+}
+
+func (wr *WebRouter) getNodes(w http.ResponseWriter, r *http.Request) {
+	session, _ := wr.getSession(r)
+	user, err := wr.getUser(session)
+	if err != nil || user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Parse query parameters for filtering
+	query := r.URL.Query()
+	meshOnly := query.Get("mesh_only") == "true"
+	connectedOnly := query.Get("connected_only") == "true"
+	validGatewayOnly := query.Get("valid_gateway_only") == "true"
+	allUsers := query.Get("all_users") == "true"
+
+	// Authorization check for all_users flag
+	if allUsers && !user.IsSuperuser {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Get clients based on authorization
+	var clients []*models.ClientDetails
+	if allUsers {
+		clients = wr.MqttServer.GetAllClients()
+	} else {
+		clients = wr.MqttServer.GetUserClients(user.UserName)
+	}
+
+	nodes := []NodeResponse{}
+	otherClients := []NodeResponse{}
+
+	knownNodes := []uint32{}
+	for _, c := range clients {
+		if c.IsMeshDevice() {
+			// Apply filters for mesh devices
+			if connectedOnly && c.Address == "" {
+				continue
+			}
+			if validGatewayOnly && !c.IsValidGateway() {
+				continue
+			}
+
+			nodeID := ""
+			nodeRole := ""
+			hwModel := ""
+			var lastSeen *string
+
+			if c.NodeDetails != nil {
+				nodeID = c.NodeDetails.NodeID.String()
+				nodeRole = c.NodeDetails.NodeRole
+				hwModel = c.NodeDetails.HwModel
+				knownNodes = append(knownNodes, uint32(c.NodeDetails.NodeID))
+
+				if c.NodeDetails.LastSeen != nil {
+					lastSeenStr := c.NodeDetails.LastSeen.Format("2006-01-02 15:04:05")
+					lastSeen = &lastSeenStr
+				}
+			}
+
+			ipAddr, _ := c.GetIPAddress()
+			validationErrors := c.GetValidationErrors()
+
+			userDisplay := ""
+			if allUsers {
+				userDisplay = wr.getUserDisplay(c.MqttUserName)
+			}
+
+			nodes = append(nodes, NodeResponse{
+				NodeID:           nodeID,
+				ShortName:        c.GetShortName(),
+				LongName:         c.GetLongName(),
+				ProxyType:        c.ProxyType,
+				Address:          ipAddr,
+				RootTopic:        c.RootTopic,
+				NodeRole:         nodeRole,
+				HwModel:          hwModel,
+				LastSeen:         lastSeen,
+				IsDownlink:       c.IsDownlinkVerified(),
+				IsValidGateway:   c.IsValidGateway(),
+				IsConnected:      c.Address != "",
+				IsMeshDevice:     true,
+				ClientID:         c.ClientID,
+				UserDisplay:      userDisplay,
+				ValidationErrors: validationErrors,
+			})
+		} else if !meshOnly {
+			// Apply filters for non-mesh devices
+			if connectedOnly && c.Address == "" {
+				continue
+			}
+
+			ipAddr, _ := c.GetIPAddress()
+
+			userDisplay := ""
+			if allUsers {
+				userDisplay = wr.getUserDisplay(c.MqttUserName)
+			}
+
+			otherClients = append(otherClients, NodeResponse{
+				ClientID:     c.ClientID,
+				Address:      ipAddr,
+				RootTopic:    c.RootTopic,
+				IsConnected:  c.Address != "",
+				IsMeshDevice: false,
+				UserDisplay:  userDisplay,
+			})
+		}
+	}
+
+	// Include offline nodes if not filtering for connected only
+	if !connectedOnly {
+		var offlineNodes []*models.NodeInfo
+		var err error
+		if !allUsers {
+			offlineNodes, err = wr.storage.NodeDB.GetByUserIDExceptNodeIDs(user.ID, knownNodes)
+		}
+
+		if err == nil {
+			for _, n := range offlineNodes {
+				var lastSeen *string
+				if n.LastSeen != nil {
+					lastSeenStr := n.LastSeen.Format("2006-01-02 15:04:05")
+					lastSeen = &lastSeenStr
+				}
+
+				nodes = append(nodes, NodeResponse{
+					NodeID:       n.NodeID.String(),
+					ShortName:    n.GetSafeShortName(),
+					LongName:     n.GetSafeLongName(),
+					NodeRole:     n.NodeRole,
+					HwModel:      n.HwModel,
+					LastSeen:     lastSeen,
+					IsConnected:  false,
+					IsMeshDevice: true,
+				})
+			}
+		}
+	}
+
+	// Sort nodes by NodeID
+	sort.Slice(nodes, func(i, j int) bool {
+		if nodes[i].NodeID == "" && nodes[j].NodeID != "" {
+			return true
+		}
+		if nodes[i].NodeID != "" && nodes[j].NodeID == "" {
+			return false
+		}
+		if nodes[i].NodeID != "" && nodes[j].NodeID != "" {
+			return nodes[i].NodeID < nodes[j].NodeID
+		}
+		return nodes[i].ClientID < nodes[j].ClientID
+	})
+
+	// Sort other clients by ClientID
+	sort.Slice(otherClients, func(i, j int) bool {
+		return otherClients[i].ClientID < otherClients[j].ClientID
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(NodesResponse{
+		Nodes:        nodes,
+		OtherClients: otherClients,
 	})
 }
