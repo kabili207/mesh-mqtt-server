@@ -32,6 +32,7 @@ type MeshSettings struct {
 }
 
 type MeshChannelDef struct {
-	Name string
-	Key  string
+	Name   string
+	Key    string
+	Export bool
 }

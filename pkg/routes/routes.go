@@ -81,9 +81,9 @@ type MqttConfigData struct {
 }
 
 type ChannelInfo struct {
-	Name     string
-	PSK      string
-	IsCustom bool
+	Name   string
+	PSK    string
+	Export bool
 }
 
 type PageVariables struct {
@@ -310,9 +310,9 @@ func (wr *WebRouter) getMqttConfig(user *models.User) *MqttConfigData {
 	channels := make([]ChannelInfo, len(wr.config.MeshSettings.Channels))
 	for i, ch := range wr.config.MeshSettings.Channels {
 		channels[i] = ChannelInfo{
-			Name:     ch.Name,
-			PSK:      ch.Key,
-			IsCustom: false,
+			Name:   ch.Name,
+			PSK:    ch.Key,
+			Export: ch.Export,
 		}
 	}
 

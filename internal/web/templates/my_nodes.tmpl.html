@@ -188,6 +188,7 @@
                 <h3 class="mg-marg-bottom-2">Channel Configuration</h3>
                 <p class="mg-marg-bottom-3">Configure these channels in your Meshtastic device:</p>
                 {{range .MqttConfig.Channels}}
+                {{if .Export}}
                 <div class="channel-box mg-marg-bottom-3">
                     <h4>{{.Name}}</h4>
                     <div class="credential-box mg-marg-bottom-2">
@@ -202,6 +203,7 @@
                         <span><strong>Downlink:</strong> {{if eq .Name "LongFast"}}Enabled (for Gateways){{else}}Enabled{{end}}</span>
                     </div>
                 </div>
+                {{end}}
                 {{end}}
             </div>
         </div>
