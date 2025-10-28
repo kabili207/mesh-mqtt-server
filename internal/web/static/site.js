@@ -32,6 +32,9 @@ burger.addEventListener('click', function() {
  * Onboarding modal functions
  */
 
+let currentWizardStep = 1;
+const totalWizardSteps = 6;
+
 function closeOnboarding() {
   const modal = document.getElementById('onboarding-modal');
   if (modal) {
@@ -39,10 +42,136 @@ function closeOnboarding() {
   }
 }
 
-function openOnboarding() {
+function openOnboarding(startStep) {
   const modal = document.getElementById('onboarding-modal');
   if (modal) {
+    // If opening from setup guide (not first time), start at step 2 and hide step 1
+    if (startStep === 2) {
+      currentWizardStep = 2;
+      // Hide the password step from the progress indicator
+      const step1 = document.querySelector('.wizard-step[data-step="1"]');
+      if (step1) {
+        step1.style.display = 'none';
+      }
+    } else {
+      // First time setup - show all steps starting from step 1
+      currentWizardStep = 1;
+      const step1 = document.querySelector('.wizard-step[data-step="1"]');
+      if (step1) {
+        step1.style.display = 'flex';
+      }
+    }
+
+    updateWizardUI();
     modal.classList.add('opened');
+  }
+}
+
+function updateWizardUI() {
+  // Check if step 1 is hidden (opened from setup guide)
+  const step1 = document.querySelector('.wizard-step[data-step="1"]');
+  const isStep1Hidden = step1 && step1.style.display === 'none';
+  const minStep = isStep1Hidden ? 2 : 1;
+
+  // Update step indicators
+  document.querySelectorAll('.wizard-step').forEach(step => {
+    const stepNum = parseInt(step.getAttribute('data-step'));
+    if (stepNum === currentWizardStep) {
+      step.classList.add('active');
+      step.classList.remove('completed');
+    } else if (stepNum < currentWizardStep) {
+      step.classList.add('completed');
+      step.classList.remove('active');
+    } else {
+      step.classList.remove('active', 'completed');
+    }
+  });
+
+  // Update step content visibility
+  document.querySelectorAll('.wizard-step-content').forEach(content => {
+    const stepNum = parseInt(content.getAttribute('data-step'));
+    content.style.display = stepNum === currentWizardStep ? 'block' : 'none';
+    if (stepNum === currentWizardStep) {
+      content.classList.add('active');
+    } else {
+      content.classList.remove('active');
+    }
+  });
+
+  // Update progress bar (adjust for hidden step 1)
+  const progressFill = document.getElementById('wizard-progress-fill');
+  if (progressFill) {
+    const adjustedSteps = isStep1Hidden ? totalWizardSteps - 1 : totalWizardSteps;
+    const adjustedCurrent = isStep1Hidden ? currentWizardStep - 1 : currentWizardStep;
+    const progress = ((adjustedCurrent - 1) / (adjustedSteps - 1)) * 100;
+    progressFill.style.width = progress + '%';
+  }
+
+  // Update navigation buttons
+  const prevBtn = document.querySelector('.wizard-btn-prev');
+  const nextBtn = document.querySelector('.wizard-btn-next');
+  const finishBtn = document.querySelector('.wizard-btn-finish');
+
+  if (prevBtn) {
+    prevBtn.style.visibility = currentWizardStep === minStep ? 'hidden' : 'visible';
+  }
+
+  if (nextBtn && finishBtn) {
+    if (currentWizardStep === totalWizardSteps) {
+      nextBtn.style.display = 'none';
+      finishBtn.style.display = 'block';
+    } else {
+      nextBtn.style.display = 'block';
+      finishBtn.style.display = 'none';
+    }
+  }
+}
+
+function wizardNextStep() {
+  // Special handling for step 1 (password setup)
+  if (currentWizardStep === 1) {
+    const password = document.getElementById('mqtt-password').value;
+    const confirmPassword = document.getElementById('mqtt-password-confirm').value;
+
+    if (!password || !confirmPassword) {
+      showPasswordMessage('Please fill in both password fields', 'error');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showPasswordMessage('Passwords do not match', 'error');
+      return;
+    }
+
+    if (password.length < 8) {
+      showPasswordMessage('Password must be at least 8 characters', 'error');
+      return;
+    }
+
+    // Set the password via API
+    setPassword();
+    return; // setPassword will handle moving to next step
+  }
+
+  // Move to next step for all other steps
+  if (currentWizardStep < totalWizardSteps) {
+    currentWizardStep++;
+    updateWizardUI();
+  }
+}
+
+function wizardPrevStep() {
+  if (currentWizardStep > 1) {
+    currentWizardStep--;
+    updateWizardUI();
+  }
+}
+
+function showPasswordMessage(message, type) {
+  const messageDiv = document.getElementById('password-message');
+  if (messageDiv) {
+    messageDiv.textContent = message;
+    messageDiv.className = 'message ' + type;
   }
 }
 
@@ -55,33 +184,27 @@ function copyToClipboard(text) {
   });
 }
 
+function updateTopicSelection(role) {
+  const topicDisplay = document.getElementById('selected-topic');
+  if (topicDisplay && window.mqttTopics) {
+    topicDisplay.textContent = window.mqttTopics[role] || window.mqttTopics.standard;
+  }
+}
+
+function copySelectedTopic() {
+  const topicDisplay = document.getElementById('selected-topic');
+  if (topicDisplay) {
+    copyToClipboard(topicDisplay.textContent);
+  }
+}
+
 async function setPassword() {
   const password = document.getElementById('mqtt-password').value;
-  const confirmPassword = document.getElementById('mqtt-password-confirm').value;
   const messageDiv = document.getElementById('password-message');
 
   // Clear previous messages
   messageDiv.textContent = '';
   messageDiv.className = 'message';
-
-  // Validation
-  if (!password || !confirmPassword) {
-    messageDiv.textContent = 'Please fill in both password fields';
-    messageDiv.classList.add('error');
-    return;
-  }
-
-  if (password !== confirmPassword) {
-    messageDiv.textContent = 'Passwords do not match';
-    messageDiv.classList.add('error');
-    return;
-  }
-
-  if (password.length < 8) {
-    messageDiv.textContent = 'Password must be at least 8 characters';
-    messageDiv.classList.add('error');
-    return;
-  }
 
   // Send password to server
   try {
@@ -96,26 +219,21 @@ async function setPassword() {
     const data = await response.json();
 
     if (data.success) {
-      messageDiv.textContent = 'Password set successfully!';
-      messageDiv.classList.add('success');
-
-      // Show the other sections
-      document.getElementById('password-section').style.display = 'none';
-      document.getElementById('credentials-section').style.display = 'block';
-      document.getElementById('mqtt-settings-section').style.display = 'block';
-      document.getElementById('topic-section').style.display = 'block';
-      document.getElementById('lora-settings-section').style.display = 'block';
-      document.getElementById('channel-section').style.display = 'block';
+      showPasswordMessage('Password set successfully!', 'success');
 
       // Store password in session for display (not secure but for convenience)
       document.getElementById('user-password').textContent = password;
+
+      // Move to next step in wizard after a brief delay
+      setTimeout(() => {
+        currentWizardStep++;
+        updateWizardUI();
+      }, 500);
     } else {
-      messageDiv.textContent = data.message || 'Failed to set password';
-      messageDiv.classList.add('error');
+      showPasswordMessage(data.message || 'Failed to set password', 'error');
     }
   } catch (error) {
-    messageDiv.textContent = 'Error connecting to server';
-    messageDiv.classList.add('error');
+    showPasswordMessage('Error connecting to server', 'error');
     console.error('Error:', error);
   }
 }
@@ -240,6 +358,12 @@ function renderOtherClientsTable(clients, isAdmin) {
 
 // Attach event listeners for filters
 document.addEventListener('DOMContentLoaded', function() {
+  // Initialize wizard if onboarding modal exists
+  const onboardingModal = document.getElementById('onboarding-modal');
+  if (onboardingModal) {
+    updateWizardUI();
+  }
+
   const filterControls = ['filter-connected', 'filter-gateway'];
 
   filterControls.forEach(id => {
