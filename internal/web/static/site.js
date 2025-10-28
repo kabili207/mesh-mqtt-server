@@ -265,7 +265,7 @@ async function setPassword() {
       showPasswordMessage('Password set successfully!', 'success');
 
       // Store password in session for display (not secure but for convenience)
-      document.getElementById('user-password').textContent = password;
+      //document.getElementById('user-password').textContent = password;
 
       // Move to next step in wizard after a brief delay
       setTimeout(() => {
