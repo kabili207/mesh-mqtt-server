@@ -148,7 +148,7 @@ func (c *ClientDetails) GetValidationErrors() []string {
 		errs = append(errs, "Node is connected via client proxy")
 	}
 	if !c.IsUsingGatewayTopic() {
-		errs = append(errs, "Not using a gateway route topic")
+		errs = append(errs, "Not using a gateway root topic")
 	} else if !c.IsDownlinkVerified() {
 		errs = append(errs, "Downlink over LongFast has not been verified")
 	}
