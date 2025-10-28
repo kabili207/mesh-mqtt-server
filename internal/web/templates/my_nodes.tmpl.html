@@ -224,94 +224,18 @@
 </script>
 {{end}}
 
-<div id="tables-example">
+<div id="nodes-section">
     <div class="table-controls">
         <h3>Connected Nodes</h3>
         <div class="filter-controls">
-            <label><input type="checkbox" id="filter-connected"> Connected Only</label>
+            <label><input type="checkbox" id="filter-connected" checked> Connected Only</label>
             <label><input type="checkbox" id="filter-gateway"> Valid Gateways Only</label>
         </div>
     </div>
-    <table class="table--responsive" id="nodes-table">
-        <thead>
-            <tr>
-                <th>Node ID</th>
-                <th colspan="2">Name</th>
-                <th>Proxy Type</th>
-                <th>Address</th>
-                <th>Downlink?</th>
-                <th>Valid <abbr title="gateway">GW</abbr>?</th>
-            </tr>
-        </thead>
-        <tbody id="nodes-tbody">
-            <tr>
-                <td colspan="7" class="loading-message">Loading...</td>
-            </tr>
-        </tbody>
-    </table>
 
     <div class="node-container">
-        <div class="node-grid">
-        {{ range .ConnectedNodes }}
-        <div class="node-card mg-border mg-rounded1" style="{{ if .NodeDetails }}--node-color: rgb({{ .NodeDetails.GetNodeColor }});
-                    --node-color-bg: rgba({{ .NodeDetails.GetNodeColor }}, 0.15);{{ end }}">
-
-            <!-- Header -->
-            <div class="node-header">
-                <div class="node-header-left">
-                    <span class="node-badge">
-                        {{ if .NodeDetails }}{{ .NodeDetails.ShortName }}{{ else }}?{{ end }}
-                    </span>
-                    <span class="node-name">
-                        {{ if .NodeDetails }}{{ .NodeDetails.LongName }}{{ else }}<i>unknown</i>{{ end }}
-                    </span>
-                </div>
-                <div class="mg-row mg-items-center">
-                    {{ if eq .ProxyType "Android" }}
-                    <i class="mg-icon android mg-text-green mg-mr-2" title="Android Proxy"></i>
-                    {{ else if eq .ProxyType "Apple" }}
-                    <i class="mg-icon apple mg-text-blue mg-mr-2" title="iOS Proxy"></i>
-                    {{ end }}
-                </div>
-            </div>
-
-            <!-- Root topic -->
-            <div class="node-topic">
-                Topic: <code>{{ .RootTopic }}</code>
-            </div>
-
-            <!-- Downlink + Gateway Status -->
-            <div class="node-status-row">
-                <div class="status-badge {{ if .IsDownlinkVerified }}status-badge-success{{ else }}status-badge-error{{ end }}">
-                    <i class="fas {{ if .IsDownlinkVerified }}fa-check-circle{{ else }}fa-times-circle{{ end }}"></i>
-                    <span>Downlink</span>
-                </div>
-                <div class="status-badge status-badge-clickable {{ if .IsValidGateway }}status-badge-success{{ else }}status-badge-inactive{{ end }}"
-                     data-node-id="{{ if .NodeDetails }}{{ .NodeDetails.NodeID }}{{ end }}"
-                     data-node-name="{{ if .NodeDetails }}{{ .NodeDetails.LongName }}{{ end }}"
-                     data-is-valid="{{ .IsValidGateway }}"
-                     onclick="showValidationErrors(this)"
-                     title="{{ if not .IsValidGateway }}Click to see validation errors{{ end }}">
-                    <i class="fas {{ if .IsValidGateway }}fa-check-circle{{ else }}fa-circle{{ end }}"></i>
-                    <span>Valid GW</span>
-                </div>
-            </div>
-
-            <!-- Connection Info -->
-            <div class="node-info-row">
-                <span class="node-info-text">
-                    {{ if .Address }}{{ .GetIPAddress }}{{ else }}<i>disconnected</i>{{ end }}
-                </span>
-                <span class="node-info-text">
-                    {{ if .NodeDetails }}{{ .NodeDetails.NodeRole }}{{ else }}<i>n/a</i>{{ end }}
-                </span>
-                <span class="node-info-text">
-                    {{ if .NodeDetails }}{{ .NodeDetails.NodeID }}{{ else }}<i>n/a</i>{{ end }}
-                </span>
-            </div>
-
-        </div>
-        {{ end }}
+        <div class="node-grid" id="node-grid">
+            <div class="loading-message">Loading nodes...</div>
         </div>
     </div>
 
@@ -348,8 +272,19 @@
 <script>
     // Initialize node loading on page load
     window.isAdmin = false; // Regular user page
-    if (typeof loadNodes === 'function') {
-        loadNodes(window.isAdmin);
+
+    // Ensure DOM is loaded before calling loadNodes
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof loadNodes === 'function') {
+                loadNodes(window.isAdmin);
+            }
+        });
+    } else {
+        // DOM already loaded
+        if (typeof loadNodes === 'function') {
+            loadNodes(window.isAdmin);
+        }
     }
 </script>
 

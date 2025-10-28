@@ -320,13 +320,15 @@ async function loadNodes(isAdmin = false) {
 
     const data = await response.json();
 
-    renderNodesTable(data.nodes, isAdmin);
+    renderNodeCards(data.nodes);
     renderOtherClientsTable(data.other_clients, isAdmin);
 
   } catch (error) {
     console.error('Error loading nodes:', error);
-    document.getElementById('nodes-tbody').innerHTML =
-      '<tr><td colspan="' + (isAdmin ? '11' : '10') + '" class="error-message">Error loading nodes</td></tr>';
+    const grid = document.getElementById('node-grid');
+    if (grid) {
+      grid.innerHTML = '<div class="error-message">Error loading nodes</div>';
+    }
     document.getElementById('other-clients-tbody').innerHTML =
       '<tr><td colspan="' + (isAdmin ? '4' : '3') + '" class="error-message">Error loading clients</td></tr>';
   } finally {
@@ -354,11 +356,16 @@ function scheduleNextRefresh(isAdmin) {
   }, 15000);
 }
 
-function renderNodesTable(nodes, isAdmin) {
-  const tbody = document.getElementById('nodes-tbody');
+function renderNodeCards(nodes) {
+  const grid = document.getElementById('node-grid');
+
+  if (!grid) {
+    console.error('Node grid element not found');
+    return;
+  }
 
   if (!nodes || nodes.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="' + (isAdmin ? '8' : '7') + '"><i>No nodes found</i></td></tr>';
+    grid.innerHTML = '<div class="no-nodes-message"><i>No nodes found</i></div>';
     return;
   }
 
@@ -370,23 +377,70 @@ function renderNodesTable(nodes, isAdmin) {
     }
   });
 
-  tbody.innerHTML = nodes.map(node => {
-    const validationClass = node.validation_errors && node.validation_errors.length > 0 ? 'has-errors' : '';
-    const validationTitle = node.validation_errors && node.validation_errors.length > 0
-      ? 'Validation errors: ' + node.validation_errors.join(', ')
-      : '';
+  // Generate node cards HTML
+  grid.innerHTML = nodes.map(node => {
+    const nodeColor = node.node_color || '128, 128, 128'; // Default gray
+    const shortName = node.short_name || '?';
+    const longName = node.long_name || 'unknown';
+    const nodeId = node.node_id || 'n/a';
+    const nodeRole = node.node_role || 'n/a';
+    const rootTopic = node.root_topic || '';
+    const address = node.address || '';
+    const ipAddress = address ? address.split(':')[0] : 'disconnected';
+    const isDownlink = node.is_downlink || false;
+    const isValidGateway = node.is_valid_gateway || false;
+    const proxyType = node.proxy_type || '';
+
+    // Proxy icon
+    let proxyIcon = '';
+    if (proxyType === 'Android') {
+      proxyIcon = '<i class="mg-icon android mg-text-green mg-mr-2" title="Android Proxy"></i>';
+    } else if (proxyType === 'Apple') {
+      proxyIcon = '<i class="mg-icon apple mg-text-blue mg-mr-2" title="iOS Proxy"></i>';
+    }
 
     return `
-      <tr class="${validationClass}" title="${validationTitle}">
-        <td>${node.node_id || ''}</td>
-        <td>${node.short_name || ''}</td>
-        <td>${node.long_name || 'unknown'}</td>
-        <td>${node.proxy_type || '<i>none</i>'}</td>
-        <td>${node.is_connected ? node.address : '<i>disconnected</i>'}</td>
-        <td>${node.is_downlink ? 'Yes' : 'No'}</td>
-        <td>${node.is_valid_gateway ? 'Yes' : 'No'}</td>
-        ${isAdmin ? `<td>${node.user_display || ''}</td>` : ''}
-      </tr>
+      <div class="node-card mg-border mg-rounded1" style="--node-color: rgb(${nodeColor}); --node-color-bg: rgba(${nodeColor}, 0.15);">
+        <!-- Header -->
+        <div class="node-header">
+          <div class="node-header-left">
+            <span class="node-badge">${shortName}</span>
+            <span class="node-name">${longName}</span>
+          </div>
+          <div class="mg-row mg-items-center">
+            ${proxyIcon}
+          </div>
+        </div>
+
+        <!-- Root topic -->
+        <div class="node-topic">
+          Topic: <code>${rootTopic}</code>
+        </div>
+
+        <!-- Downlink + Gateway Status -->
+        <div class="node-status-row">
+          <div class="status-badge ${isDownlink ? 'status-badge-success' : 'status-badge-error'}">
+            <i class="fas ${isDownlink ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+            <span>Downlink</span>
+          </div>
+          <div class="status-badge status-badge-clickable ${isValidGateway ? 'status-badge-success' : 'status-badge-inactive'}"
+               data-node-id="${nodeId}"
+               data-node-name="${longName}"
+               data-is-valid="${isValidGateway}"
+               onclick="showValidationErrors(this)"
+               title="${!isValidGateway ? 'Click to see validation errors' : ''}">
+            <i class="fas ${isValidGateway ? 'fa-check-circle' : 'fa-circle'}"></i>
+            <span>Valid GW</span>
+          </div>
+        </div>
+
+        <!-- Connection Info -->
+        <div class="node-info-row">
+          <span class="node-info-text">${ipAddress}</span>
+          <span class="node-info-text">${nodeRole}</span>
+          <span class="node-info-text">${nodeId}</span>
+        </div>
+      </div>
     `;
   }).join('');
 }

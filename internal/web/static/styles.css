@@ -88,6 +88,20 @@ html * {
   margin: 1.5rem 0;
 }
 
+.node-grid .loading-message,
+.node-grid .no-nodes-message,
+.node-grid .error-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem;
+  font-style: italic;
+  color: var(--mg-color-tertiary);
+}
+
+.node-grid .error-message {
+  color: var(--mg-color-red);
+}
+
 @media only screen and (max-width: 1024px) {
   .node-grid {
     grid-template-columns: repeat(2, 1fr);

@@ -339,6 +339,7 @@ type NodeResponse struct {
 	NodeID           string   `json:"node_id"`
 	ShortName        string   `json:"short_name"`
 	LongName         string   `json:"long_name"`
+	NodeColor        string   `json:"node_color,omitempty"`
 	ProxyType        string   `json:"proxy_type"`
 	Address          string   `json:"address"`
 	RootTopic        string   `json:"root_topic"`
@@ -493,6 +494,11 @@ func (wr *WebRouter) getNodes(w http.ResponseWriter, r *http.Request) {
 		nr.ClientID = c.ClientID
 		nr.ValidationErrors = c.GetValidationErrors()
 
+		// Add node color if node details are available
+		if c.NodeDetails != nil {
+			nr.NodeColor = c.NodeDetails.GetNodeColor()
+		}
+
 		nodes = append(nodes, nr)
 	}
 
@@ -518,6 +524,7 @@ func (wr *WebRouter) getNodes(w http.ResponseWriter, r *http.Request) {
 					NodeID:         n.NodeID.String(),
 					ShortName:      n.GetSafeShortName(),
 					LongName:       n.GetSafeLongName(),
+					NodeColor:      n.GetNodeColor(),
 					NodeRole:       n.NodeRole,
 					HwModel:        n.HwModel,
 					LastSeen:       lastSeen,
