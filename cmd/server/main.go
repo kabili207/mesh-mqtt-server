@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/jmoiron/sqlx"
+	"github.com/kabili207/mesh-mqtt-server/pkg/auth"
 	cfg "github.com/kabili207/mesh-mqtt-server/pkg/config"
 	"github.com/kabili207/mesh-mqtt-server/pkg/hooks"
 	"github.com/kabili207/mesh-mqtt-server/pkg/routes"
@@ -52,6 +53,10 @@ func init() {
 }
 
 func main() {
+
+	// Generate hash and salt
+	hash, salt := auth.GenerateHashAndSalt("YhyxnE4QPUGZ7^oGJ@zb")
+	fmt.Printf("Hash: %s\nSalt%s\n", hash, salt)
 
 	database, err := setupDatabase(config)
 	if err != nil {

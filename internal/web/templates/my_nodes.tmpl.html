@@ -174,8 +174,7 @@
     <div class="table-controls">
         <h3>Connected Nodes</h3>
         <div class="filter-controls">
-            <label><input type="checkbox" id="filter-connected" checked> Connected Only</label>
-            <label><input type="checkbox" id="filter-mesh"> Mesh Devices Only</label>
+            <label><input type="checkbox" id="filter-connected"> Connected Only</label>
             <label><input type="checkbox" id="filter-gateway"> Valid Gateways Only</label>
         </div>
     </div>
@@ -183,20 +182,16 @@
         <thead>
             <tr>
                 <th>Node ID</th>
-                <th>Short Name</th>
-                <th>Long Name</th>
-                <th>Role</th>
+                <th colspan="2">Name</th>
                 <th>Proxy Type</th>
                 <th>Address</th>
-                <th>Root Topic</th>
-                <th>Last Seen</th>
                 <th>Downlink?</th>
                 <th>Valid <abbr title="gateway">GW</abbr>?</th>
             </tr>
         </thead>
         <tbody id="nodes-tbody">
             <tr>
-                <td colspan="10" class="loading-message">Loading...</td>
+                <td colspan="7" class="loading-message">Loading...</td>
             </tr>
         </tbody>
     </table>
@@ -207,12 +202,11 @@
             <tr>
                 <th>Client ID</th>
                 <th>Address</th>
-                <th>Root Topic</th>
             </tr>
         </thead>
         <tbody id="other-clients-tbody">
             <tr>
-                <td colspan="3" class="loading-message">Loading...</td>
+                <td colspan="2" class="loading-message">Loading...</td>
             </tr>
         </tbody>
     </table>

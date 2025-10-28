@@ -371,18 +371,6 @@ html * {
   flex-wrap: wrap;
 }
 
-.filter-controls label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.filter-controls input[type="checkbox"] {
-  cursor: pointer;
-}
-
 .loading-message {
   text-align: center;
   padding: 2rem !important;

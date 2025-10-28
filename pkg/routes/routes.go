@@ -410,7 +410,6 @@ func (wr *WebRouter) getNodes(w http.ResponseWriter, r *http.Request) {
 
 	// Parse query parameters for filtering
 	query := r.URL.Query()
-	meshOnly := query.Get("mesh_only") == "true"
 	connectedOnly := query.Get("connected_only") == "true"
 	validGatewayOnly := query.Get("valid_gateway_only") == "true"
 	allUsers := query.Get("all_users") == "true"
@@ -434,87 +433,76 @@ func (wr *WebRouter) getNodes(w http.ResponseWriter, r *http.Request) {
 
 	knownNodes := []uint32{}
 	for _, c := range clients {
-		if c.IsMeshDevice() {
-			// Apply filters for mesh devices
-			if connectedOnly && c.Address == "" {
-				continue
-			}
-			if validGatewayOnly && !c.IsValidGateway() {
-				continue
-			}
-
-			nodeID := ""
-			nodeRole := ""
-			hwModel := ""
-			var lastSeen *string
-
-			if c.NodeDetails != nil {
-				nodeID = c.NodeDetails.NodeID.String()
-				nodeRole = c.NodeDetails.NodeRole
-				hwModel = c.NodeDetails.HwModel
-				knownNodes = append(knownNodes, uint32(c.NodeDetails.NodeID))
-
-				if c.NodeDetails.LastSeen != nil {
-					lastSeenStr := c.NodeDetails.LastSeen.Format("2006-01-02 15:04:05")
-					lastSeen = &lastSeenStr
-				}
-			}
-
-			ipAddr, _ := c.GetIPAddress()
-			validationErrors := c.GetValidationErrors()
-
-			userDisplay := ""
-			if allUsers {
-				userDisplay = wr.getUserDisplay(c.MqttUserName)
-			}
-
-			nodes = append(nodes, NodeResponse{
-				NodeID:           nodeID,
-				ShortName:        c.GetShortName(),
-				LongName:         c.GetLongName(),
-				ProxyType:        c.ProxyType,
-				Address:          ipAddr,
-				RootTopic:        c.RootTopic,
-				NodeRole:         nodeRole,
-				HwModel:          hwModel,
-				LastSeen:         lastSeen,
-				IsDownlink:       c.IsDownlinkVerified(),
-				IsValidGateway:   c.IsValidGateway(),
-				IsConnected:      c.Address != "",
-				IsMeshDevice:     true,
-				ClientID:         c.ClientID,
-				UserDisplay:      userDisplay,
-				ValidationErrors: validationErrors,
-			})
-		} else if !meshOnly {
-			// Apply filters for non-mesh devices
-			if connectedOnly && c.Address == "" {
-				continue
-			}
-
-			ipAddr, _ := c.GetIPAddress()
-
-			userDisplay := ""
-			if allUsers {
-				userDisplay = wr.getUserDisplay(c.MqttUserName)
-			}
-
-			otherClients = append(otherClients, NodeResponse{
-				ClientID:     c.ClientID,
-				Address:      ipAddr,
-				RootTopic:    c.RootTopic,
-				IsConnected:  c.Address != "",
-				IsMeshDevice: false,
-				UserDisplay:  userDisplay,
-			})
+		// Apply filters for mesh devices
+		if connectedOnly && c.Address == "" {
+			continue
 		}
+
+		ipAddr, _ := c.GetIPAddress()
+
+		userDisplay := ""
+		if allUsers {
+			userDisplay = wr.getUserDisplay(c.MqttUserName)
+		}
+
+		nr := NodeResponse{
+			ClientID:     c.ClientID,
+			Address:      ipAddr,
+			IsConnected:  c.Address != "",
+			IsMeshDevice: false,
+			UserDisplay:  userDisplay,
+		}
+
+		if !c.IsMeshDevice() {
+			otherClients = append(otherClients, nr)
+			continue
+		}
+
+		if validGatewayOnly && !c.IsValidGateway() {
+			continue
+		}
+
+		nodeID := ""
+		nodeRole := ""
+		hwModel := ""
+		var lastSeen *string
+
+		if c.NodeDetails != nil {
+			nodeID = c.NodeDetails.NodeID.String()
+			nodeRole = c.NodeDetails.NodeRole
+			hwModel = c.NodeDetails.HwModel
+			knownNodes = append(knownNodes, uint32(c.NodeDetails.NodeID))
+
+			if c.NodeDetails.LastSeen != nil {
+				lastSeenStr := c.NodeDetails.LastSeen.Format("2006-01-02 15:04:05")
+				lastSeen = &lastSeenStr
+			}
+		}
+
+		nr.NodeID = nodeID
+		nr.ShortName = c.GetShortName()
+		nr.LongName = c.GetLongName()
+		nr.ProxyType = c.ProxyType
+		nr.RootTopic = c.RootTopic
+		nr.NodeRole = nodeRole
+		nr.HwModel = hwModel
+		nr.LastSeen = lastSeen
+		nr.IsDownlink = c.IsDownlinkVerified()
+		nr.IsValidGateway = c.IsValidGateway()
+		nr.IsMeshDevice = true
+		nr.ClientID = c.ClientID
+		nr.ValidationErrors = c.GetValidationErrors()
+
+		nodes = append(nodes, nr)
 	}
 
 	// Include offline nodes if not filtering for connected only
 	if !connectedOnly {
 		var offlineNodes []*models.NodeInfo
 		var err error
-		if !allUsers {
+		if allUsers {
+			offlineNodes, err = wr.storage.NodeDB.GetAllExceptNodeIDs(knownNodes)
+		} else {
 			offlineNodes, err = wr.storage.NodeDB.GetByUserIDExceptNodeIDs(user.ID, knownNodes)
 		}
 

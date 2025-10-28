@@ -129,10 +129,9 @@ let isLoadingNodes = false;
 
 function getFilters() {
   const connectedOnly = document.getElementById('filter-connected')?.checked || false;
-  const meshOnly = document.getElementById('filter-mesh')?.checked || false;
   const gatewayOnly = document.getElementById('filter-gateway')?.checked || false;
 
-  return { connectedOnly, meshOnly, gatewayOnly };
+  return { connectedOnly, gatewayOnly };
 }
 
 async function loadNodes(isAdmin = false) {
@@ -148,7 +147,6 @@ async function loadNodes(isAdmin = false) {
     const params = new URLSearchParams();
 
     if (filters.connectedOnly) params.append('connected_only', 'true');
-    if (filters.meshOnly) params.append('mesh_only', 'true');
     if (filters.gatewayOnly) params.append('valid_gateway_only', 'true');
     if (isAdmin) params.append('all_users', 'true');
 
@@ -198,7 +196,7 @@ function renderNodesTable(nodes, isAdmin) {
   const tbody = document.getElementById('nodes-tbody');
 
   if (!nodes || nodes.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="' + (isAdmin ? '11' : '10') + '"><i>No nodes found</i></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="' + (isAdmin ? '8' : '7') + '"><i>No nodes found</i></td></tr>';
     return;
   }
 
@@ -213,11 +211,8 @@ function renderNodesTable(nodes, isAdmin) {
         <td>${node.node_id || ''}</td>
         <td>${node.short_name || ''}</td>
         <td>${node.long_name || 'unknown'}</td>
-        <td>${node.node_role || ''}</td>
         <td>${node.proxy_type || '<i>none</i>'}</td>
         <td>${node.is_connected ? node.address : '<i>disconnected</i>'}</td>
-        <td>${node.root_topic || ''}</td>
-        <td>${node.last_seen || ''}</td>
         <td>${node.is_downlink ? 'Yes' : 'No'}</td>
         <td>${node.is_valid_gateway ? 'Yes' : 'No'}</td>
         ${isAdmin ? `<td>${node.user_display || ''}</td>` : ''}
@@ -230,7 +225,7 @@ function renderOtherClientsTable(clients, isAdmin) {
   const tbody = document.getElementById('other-clients-tbody');
 
   if (!clients || clients.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="' + (isAdmin ? '4' : '3') + '"><i>No other clients</i></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="' + (isAdmin ? '3' : '2') + '"><i>No other clients</i></td></tr>';
     return;
   }
 
@@ -238,7 +233,6 @@ function renderOtherClientsTable(clients, isAdmin) {
     <tr>
       <td>${client.client_id}</td>
       <td>${client.address || '<i>disconnected</i>'}</td>
-      <td>${client.root_topic || ''}</td>
       ${isAdmin ? `<td>${client.user_display || ''}</td>` : ''}
     </tr>
   `).join('');
@@ -246,7 +240,7 @@ function renderOtherClientsTable(clients, isAdmin) {
 
 // Attach event listeners for filters
 document.addEventListener('DOMContentLoaded', function() {
-  const filterControls = ['filter-connected', 'filter-mesh', 'filter-gateway'];
+  const filterControls = ['filter-connected', 'filter-gateway'];
 
   filterControls.forEach(id => {
     const element = document.getElementById(id);

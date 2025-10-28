@@ -6,23 +6,18 @@
     <div class="table-controls">
         <h3>All Nodes</h3>
         <div class="filter-controls">
-            <label><input type="checkbox" id="filter-connected" checked> Connected Only</label>
-            <label><input type="checkbox" id="filter-mesh"> Mesh Devices Only</label>
-            <label><input type="checkbox" id="filter-gateway"> Valid Gateways Only</label>
-            <label><input type="checkbox" id="auto-refresh"> Auto-Refresh (15s)</label>
+            <label class="mg-toggle mg-text-s">Connected Only <input type="checkbox" id="filter-connected" checked> <span class="mg-toggle--icon mg-icon--s"></span></label>
+            <label class="mg-toggle mg-text-s">Valid Gateways Only<input type="checkbox" id="filter-gateway"> <span class="mg-toggle--icon mg-icon--s"></span></label>
+            <label class="mg-toggle mg-text-s">Auto-Refresh (15s)<input type="checkbox" id="auto-refresh"> <span class="mg-toggle--icon mg-icon--s"></span></label>
         </div>
     </div>
     <table class="table--responsive" id="nodes-table">
         <thead>
             <tr>
                 <th>Node ID</th>
-                <th>Short Name</th>
-                <th>Long Name</th>
-                <th>Role</th>
+                <th colspan="2">Name</th>
                 <th>Proxy Type</th>
                 <th>Address</th>
-                <th>Root Topic</th>
-                <th>Last Seen</th>
                 <th>Downlink?</th>
                 <th>Valid <abbr title="gateway">GW</abbr>?</th>
                 <th>User</th>
@@ -30,7 +25,7 @@
         </thead>
         <tbody id="nodes-tbody">
             <tr>
-                <td colspan="11" class="loading-message">Loading...</td>
+                <td colspan="8" class="loading-message">Loading...</td>
             </tr>
         </tbody>
     </table>
@@ -41,13 +36,12 @@
             <tr>
                 <th>Client ID</th>
                 <th>Address</th>
-                <th>Root Topic</th>
                 <th>User</th>
             </tr>
         </thead>
         <tbody id="other-clients-tbody">
             <tr>
-                <td colspan="4" class="loading-message">Loading...</td>
+                <td colspan="3" class="loading-message">Loading...</td>
             </tr>
         </tbody>
     </table>
