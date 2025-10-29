@@ -905,6 +905,12 @@ tr.has-errors:hover {
   background-color: #ffe69c;
 }
 
+/* Prevent node IDs from wrapping */
+#nodes-table td:first-child,
+#other-clients-table td:first-child {
+  white-space: nowrap;
+}
+
 @media only screen and (max-width:768px) {
   .table-controls {
     flex-direction: column;
