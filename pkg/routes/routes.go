@@ -206,7 +206,7 @@ func (wr *WebRouter) homePage(w http.ResponseWriter, r *http.Request) {
 			slog.Error("error loading my_nodes template", "error", err)
 		}
 
-		mqttConfig := wr.getMqttConfig(user)
+		mqttConfig := wr.getMqttConfig(r, user)
 		showOnboarding := user.PasswordHash == "" // Show onboarding if no password set
 
 		err = tmpl.ExecuteTemplate(w, "base", PageVariables{
@@ -302,7 +302,7 @@ func (wr *WebRouter) getUserDisplay(mqttUsername string) string {
 	return mqttUsername
 }
 
-func (wr *WebRouter) getMqttConfig(user *models.User) *MqttConfigData {
+func (wr *WebRouter) getMqttConfig(r *http.Request, user *models.User) *MqttConfigData {
 	if user == nil {
 		return nil
 	}
@@ -316,8 +316,10 @@ func (wr *WebRouter) getMqttConfig(user *models.User) *MqttConfigData {
 		}
 	}
 
+	url := r.URL
+	url.Host = r.Host
 	return &MqttConfigData{
-		ServerAddress: wr.config.BaseURL,
+		ServerAddress: url.Hostname(),
 		Username:      user.UserName,
 		Password:      "", // Never send password to frontend
 		RootTopic:     wr.config.MeshSettings.MqttRoot,
