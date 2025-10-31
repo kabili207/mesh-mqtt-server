@@ -163,9 +163,6 @@ func (h *MeshtasticHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packe
 			proxyType = matches[1]
 			//nodeID = matches[2]
 		}
-		// Query permissions once at authentication time
-		isSuperuser, _ := h.config.Storage.Users.IsSuperuser(validatedUser.ID)
-		isGatewayAllowed, _ := h.config.Storage.Users.IsGatewayAllowed(validatedUser.ID)
 
 		h.clientLock.Lock()
 		cd := &models.ClientDetails{
@@ -177,8 +174,6 @@ func (h *MeshtasticHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packe
 			Address:        cl.Net.Remote,
 			ValidGWChecker: h.makeGatewayValidator(validatedUser.ID),
 		}
-		// Cache permissions with TTL
-		cd.SetCachedPermissions(isSuperuser, isGatewayAllowed)
 		h.knownClients[clientID] = cd
 		h.clientLock.Unlock()
 		if nodeDetails != nil {
@@ -220,30 +215,14 @@ func (h *MeshtasticHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) b
 		return false
 	}
 
-	// Try to use cached permissions first
-	isSU, _, valid := cd.GetCachedPermissions()
-	h.clientLock.RUnlock()
-
-	if !valid {
-		// Cache expired, refresh from DB and update cache
-		var err error
-		isSU, err = h.config.Storage.Users.IsSuperuser(cd.UserID)
-		if err != nil {
-			h.Log.Warn("error checking superuser status", "user_id", cd.UserID, "error", err)
-			isSU = false
-		}
-
-		isGW, err := h.config.Storage.Users.IsGatewayAllowed(cd.UserID)
-		if err != nil {
-			h.Log.Warn("error checking gateway permission", "user_id", cd.UserID, "error", err)
-			isGW = false
-		}
-
-		cd.SetCachedPermissions(isSU, isGW)
+	// Check superuser status (database layer has its own cache)
+	isSU, err := h.config.Storage.Users.IsSuperuser(cd.UserID)
+	if err != nil {
+		h.Log.Warn("error checking superuser status", "user_id", cd.UserID, "error", err)
+		isSU = false
 	}
 
-	// Re-acquire lock only for the checks that need to access knownClients
-	h.clientLock.RLock()
+	// Keep the lock for the remaining checks
 	defer h.clientLock.RUnlock()
 
 	if sysFilter.FilterMatches(topic) {

@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"log/slog"
 	"net"
 	"strings"
 	"sync"
@@ -34,10 +33,6 @@ type ClientDetails struct {
 	VerifyReqTime  *time.Time
 	InvalidPackets int
 	ValidGWChecker func() bool
-	// Cached permissions with expiry - revalidated after TTL
-	cachedIsSuperuser      bool
-	cachedIsGatewayAllowed bool
-	permissionsCachedAt    time.Time
 }
 
 type NodeInfo struct {
@@ -142,16 +137,8 @@ func (c *ClientDetails) GetNodeID() *meshtastic.NodeID {
 func (c *ClientDetails) GetValidationErrors() []string {
 	errs := []string{}
 
-	// Use cached permissions to avoid database queries during web API calls
-	_, isGatewayAllowed, permValid := c.GetCachedPermissions()
-	if !permValid {
-		// Cache expired or not set - fall back to ValidGWChecker which will query DB
-		slog.Warn("GetValidationErrors: permission cache invalid, falling back to DB query",
-			"client", c.ClientID, "user_id", c.UserID)
-		if c.ValidGWChecker != nil && !c.ValidGWChecker() {
-			errs = append(errs, "Gateway not allowed by mesh admin")
-		}
-	} else if !isGatewayAllowed {
+	// Check gateway permission (ValidGWChecker uses database cache)
+	if c.ValidGWChecker != nil && !c.ValidGWChecker() {
 		errs = append(errs, "Gateway not allowed by mesh admin")
 	}
 	if c.ProxyType != "" {
@@ -220,27 +207,3 @@ func (n *NodeInfo) GetNodeColor() string {
 	return fmt.Sprintf("%d, %d, %d", r, g, b)
 }
 
-// Permission cache TTL - match the user store's 15 minute TTL
-const PermissionCacheTTL = 15 * time.Minute
-
-// GetCachedPermissions returns cached permissions if still valid, or (false, false, false) if expired
-func (c *ClientDetails) GetCachedPermissions() (isSuperuser, isGatewayAllowed, valid bool) {
-	c.RLock()
-	defer c.RUnlock()
-
-	if time.Since(c.permissionsCachedAt) > PermissionCacheTTL {
-		return false, false, false
-	}
-
-	return c.cachedIsSuperuser, c.cachedIsGatewayAllowed, true
-}
-
-// SetCachedPermissions updates the cached permissions with current timestamp
-func (c *ClientDetails) SetCachedPermissions(isSuperuser, isGatewayAllowed bool) {
-	c.Lock()
-	defer c.Unlock()
-
-	c.cachedIsSuperuser = isSuperuser
-	c.cachedIsGatewayAllowed = isGatewayAllowed
-	c.permissionsCachedAt = time.Now()
-}
