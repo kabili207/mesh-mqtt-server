@@ -237,15 +237,18 @@ func (h *MeshtasticHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) b
 	}
 
 	if !cd.IsMeshDevice() {
-		// Non-mesh devices are only allowed to read, unless they are superuser
+		// Non-mesh devices can write to non-gateway topics, but gateway topics require superuser
 		if write {
-			if !isSU {
-				h.Log.Warn("ACL denied: non-mesh device attempting write",
+			isGatewayTopic := gatewayTopicRegex.MatchString(topic) || gatewaySubRegex.MatchString(topic)
+			if isGatewayTopic && !isSU {
+				h.Log.Warn("ACL denied: non-mesh device attempting write to gateway topic",
 					"client", cl.ID,
 					"user", cd.MqttUserName,
 					"topic", topic)
+				return false
 			}
-			return isSU
+			// Allow writes to non-gateway topics (or superuser writes to any topic)
+			return true
 		}
 
 		// For reads on gateway topics, block if the publisher is an unvalidated gateway
