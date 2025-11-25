@@ -199,7 +199,7 @@ func createMqttUsername(discordUser string) string {
 			j++
 		}
 	}
-	return fmt.Sprintf("mesht-%s", string(s[:j]))
+	return string(s[:j])
 }
 
 func (wr *WebRouter) saveToken(gUser models.DiscordUser, token *oauth2.Token) (*models.User, error) {
