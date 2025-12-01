@@ -46,14 +46,14 @@ func NodeCard(node NodeData) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"node-card mg-border mg-rounded1\" style=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"node-card border rounded-2xl\" style=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("--node-color: rgb(%s); --node-color-bg: rgba(%s, 0.15);", getNodeColor(node), getNodeColor(node)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/node_card.templ`, Line: 21, Col: 164}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/node_card.templ`, Line: 21, Col: 161}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -85,7 +85,7 @@ func NodeCard(node NodeData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</span></div><div class=\"mg-row mg-items-center\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</span></div><div class=\"flex items-center\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -758,6 +758,8 @@ func NodesTableContent(nodes []NodeData, showUser bool) templ.Component {
 }
 
 // OtherClientsTable renders a table of other (non-mesh) clients
+// Note: SSE updates for other-clients come from the same connection as nodes,
+// so we only need sse-swap here (the parent nodes element handles the connection)
 func OtherClientsTable(clients []OtherClientData, showUser bool, sseEndpoint string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -799,9 +801,9 @@ func OtherClientsTable(clients []OtherClientData, showUser bool, sseEndpoint str
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var39 string
-			templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(sseEndpoint + "&type=other")
+			templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(sseEndpoint)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/node_card.templ`, Line: 208, Col: 45}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/node_card.templ`, Line: 210, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 			if templ_7745c5c3_Err != nil {
@@ -858,7 +860,7 @@ func OtherClientsTableContent(clients []OtherClientData, showUser bool) templ.Co
 			var templ_7745c5c3_Var41 string
 			templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(otherClientsColSpan(showUser))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/node_card.templ`, Line: 222, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/node_card.templ`, Line: 224, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 			if templ_7745c5c3_Err != nil {
@@ -877,7 +879,7 @@ func OtherClientsTableContent(clients []OtherClientData, showUser bool) templ.Co
 				var templ_7745c5c3_Var42 string
 				templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(client.ClientID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/node_card.templ`, Line: 227, Col: 25}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/node_card.templ`, Line: 229, Col: 25}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 				if templ_7745c5c3_Err != nil {
@@ -891,7 +893,7 @@ func OtherClientsTableContent(clients []OtherClientData, showUser bool) templ.Co
 					var templ_7745c5c3_Var43 string
 					templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(client.Address)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/node_card.templ`, Line: 230, Col: 22}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/node_card.templ`, Line: 232, Col: 22}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 					if templ_7745c5c3_Err != nil {
@@ -915,7 +917,7 @@ func OtherClientsTableContent(clients []OtherClientData, showUser bool) templ.Co
 					var templ_7745c5c3_Var44 string
 					templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(client.UserDisplay)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/node_card.templ`, Line: 236, Col: 29}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/node_card.templ`, Line: 238, Col: 29}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 					if templ_7745c5c3_Err != nil {
@@ -1071,12 +1073,12 @@ func proxyIcon(proxyType string) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if proxyType == "Android" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "<i class=\"fab fa-android\" style=\"font-size: 1.25em; margin-left: 0.5rem;\" title=\"Android Proxy\"></i>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "<i class=\"fab fa-android text-xl ml-2\" title=\"Android Proxy\"></i>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else if proxyType == "Apple" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "<i class=\"fab fa-apple\" style=\"font-size: 1.25em; margin-left: 0.5rem;\" title=\"iOS Proxy\"></i>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "<i class=\"fab fa-apple text-xl ml-2\" title=\"iOS Proxy\"></i>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

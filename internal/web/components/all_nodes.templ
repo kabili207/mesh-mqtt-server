@@ -14,30 +14,31 @@ templ AllNodesPage(data AllNodesPageData) {
 					<h3>All Nodes</h3>
 					<div class="filter-controls">
 						<input type="hidden" id="filter-connected" name="filter-connected" value="on" checked/>
-						<label class="mg-toggle mg-text-s">
+						<label class="toggle-label text-sm">
 							Valid Gateways Only
 							<input
 								type="checkbox"
 								id="filter-gateway"
 								name="filter-gateway"
+								class="toggle-checkbox"
 								hx-get="/api/nodes-html?all_users=true"
 								hx-target="#nodes-tbody"
 								hx-swap="innerHTML"
 								hx-include="#filter-connected"
 								hx-trigger="change"
 							/>
-							<span class="mg-toggle--icon mg-icon--s"></span>
+							<span class="toggle-switch"></span>
 						</label>
-						<label class="mg-toggle mg-text-s">
+						<label class="toggle-label text-sm">
 							Auto-Refresh (15s)
-							<input type="checkbox" id="auto-refresh"/>
-							<span class="mg-toggle--icon mg-icon--s"></span>
+							<input type="checkbox" id="auto-refresh" class="toggle-checkbox"/>
+							<span class="toggle-switch"></span>
 						</label>
 					</div>
 				</div>
 				@NodesTable(data.Nodes, true, data.SSEEndpoint)
 
-				<h3>Other Connections</h3>
+				<h3 class="mt-6">Other Connections</h3>
 				@OtherClientsTable(data.OtherClients, true, data.SSEEndpoint)
 			</div>
 

@@ -33,7 +33,7 @@ func ForwardingStatusPanel(status *ForwardingStatusData) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if status != nil && status.Enabled {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"forwarding-panel mg-marg-bottom-4\"><h3><i class=\"fas fa-share-alt\"></i> Packet Forwarding</h3><div class=\"forwarding-targets\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"forwarding-panel mb-8\"><h3><i class=\"fas fa-share-alt\"></i> Packet Forwarding</h3><div class=\"forwarding-targets\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -80,7 +80,7 @@ func ForwardingTargetCard(target ForwardingTargetData) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		var templ_7745c5c3_Var3 = []any{"forwarding-target-card", "mg-border", "mg-rounded1", templ.KV("connected", target.Connected), templ.KV("disconnected", !target.Connected)}
+		var templ_7745c5c3_Var3 = []any{"forwarding-target-card", "border", "rounded-2xl", templ.KV("connected", target.Connected), templ.KV("disconnected", !target.Connected)}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var3...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

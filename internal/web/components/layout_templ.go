@@ -43,82 +43,98 @@ func Layout(props LayoutProps) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"wrapper\"><header><div class=\"logo-view\"><a href=\"/\"><img class=\"logo\" src=\"/static/pgh_mesh_nobg.svg\" alt=\"Pittsburgh Mesh Logo\"> <span>MQTT Server</span></a></div><nav id=\"header-nav\"><ul class=\"mg-nav mg-nav--inline\" data-toggle=\"nav\"><li class=\"active\"><a href=\"/\">My Nodes</a></li>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"wrapper\"><header class=\"flex items-center w-full py-4 gap-4 flex-wrap\"><div class=\"logo-view flex-grow min-w-0\"><a href=\"/\" class=\"flex items-center gap-2\"><img class=\"logo w-16 md:w-24 flex-shrink-0\" src=\"/static/pgh_mesh_nobg.svg\" alt=\"Pittsburgh Mesh Logo\"> <span class=\"text-l md:text-2xl lg:text-3xl font-light whitespace-nowrap\">MQTT Server</span></a></div><nav id=\"header-nav\" class=\"hidden md:block\"><ul class=\"flex flex-row gap-1 text-sm lg:text-base\" data-toggle=\"nav\"><li class=\"px-2 py-1 lg:px-3 lg:py-2\"><a href=\"/\" class=\"hover:text-primary\">My Nodes</a></li>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if props.ShowSetupGuide {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<li><a href=\"#\" onclick=\"openOnboarding(2); return false;\">Setup Guide</a></li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<li class=\"px-2 py-1 lg:px-3 lg:py-2\"><a href=\"#\" onclick=\"openOnboarding(2); return false;\" class=\"hover:text-primary\">Setup Guide</a></li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
 		if props.IsSuperuser {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<li><a href=\"/all-nodes\">All Nodes</a></li><li><a href=\"/users\">Users</a></li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<li class=\"px-2 py-1 lg:px-3 lg:py-2\"><a href=\"/all-nodes\" class=\"hover:text-primary\">All Nodes</a></li><li class=\"px-2 py-1 lg:px-3 lg:py-2\"><a href=\"/users\" class=\"hover:text-primary\">Users</a></li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<li><a href=\"/auth/logout\">Logout</a></li></ul></nav><div class=\"burger\"><i class=\"fas fa-bars\"></i></div></header>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<li class=\"px-2 py-1 lg:px-3 lg:py-2\"><a href=\"/auth/logout\" class=\"hover:text-primary\">Logout</a></li></ul></nav><button class=\"burger md:hidden text-xl p-2\" onclick=\"toggleMobileNav()\"><i class=\"fas fa-bars\"></i></button></header><!-- Mobile Navigation --><nav id=\"mobile-nav\" class=\"hidden md:hidden bg-quinary rounded-lg mb-4 p-4\"><ul class=\"flex flex-col gap-2\"><li><a href=\"/\" class=\"block py-2 px-3 hover:bg-quaternary rounded\">My Nodes</a></li>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if props.ShowSetupGuide {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<li><a href=\"#\" onclick=\"openOnboarding(2); return false;\" class=\"block py-2 px-3 hover:bg-quaternary rounded\">Setup Guide</a></li>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		if props.IsSuperuser {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<li><a href=\"/all-nodes\" class=\"block py-2 px-3 hover:bg-quaternary rounded\">All Nodes</a></li><li><a href=\"/users\" class=\"block py-2 px-3 hover:bg-quaternary rounded\">Users</a></li>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<li><a href=\"/auth/logout\" class=\"block py-2 px-3 hover:bg-quaternary rounded\">Logout</a></li></ul></nav>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for i, a := range props.Alerts {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"alert alert-{ a.Type }\" id=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"alert alert-{ a.Type }\" id=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(templ.EscapeString("alert-added-" + string(rune(i))))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/layout.templ`, Line: 43, Col: 96}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/layout.templ`, Line: 57, Col: 96}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"><span class=\"alert-text\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\"><span class=\"alert-text\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(a.Message)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/layout.templ`, Line: 44, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/layout.templ`, Line: 58, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</span> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</span> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if a.Detail != nil {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<span class=\"alert-detail\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<span class=\"alert-detail\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(*a.Detail)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/layout.templ`, Line: 46, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/components/layout.templ`, Line: 60, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</span>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</span>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"mg-container\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div class=\"container mx-auto\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -126,7 +142,7 @@ func Layout(props LayoutProps) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div><footer><a href=\"https://github.com/kabili207/mesh-mqtt-server\">Github</a> | made by kabili207</footer></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div><footer class=\"p-4 text-center text-tertiary\"><a href=\"https://github.com/kabili207/mesh-mqtt-server\" class=\"text-primary hover:underline\">Github</a> | made by kabili207</footer></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

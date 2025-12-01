@@ -18,14 +18,14 @@ func nodeValidationErrorsJSON(nodes []NodeData) string {
 
 // NodeCard renders a single node card
 templ NodeCard(node NodeData) {
-	<div class="node-card mg-border mg-rounded1" style={ fmt.Sprintf("--node-color: rgb(%s); --node-color-bg: rgba(%s, 0.15);", getNodeColor(node), getNodeColor(node)) }>
+	<div class="node-card border rounded-2xl" style={ fmt.Sprintf("--node-color: rgb(%s); --node-color-bg: rgba(%s, 0.15);", getNodeColor(node), getNodeColor(node)) }>
 		<!-- Header -->
 		<div class="node-header">
 			<div class="node-header-left">
 				<span class="node-badge">{ getShortName(node) }</span>
 				<span class="node-name">{ getLongName(node) }</span>
 			</div>
-			<div class="mg-row mg-items-center">
+			<div class="flex items-center">
 				@proxyIcon(node.ProxyType)
 			</div>
 		</div>
@@ -190,6 +190,8 @@ templ NodesTableContent(nodes []NodeData, showUser bool) {
 }
 
 // OtherClientsTable renders a table of other (non-mesh) clients
+// Note: SSE updates for other-clients come from the same connection as nodes,
+// so we only need sse-swap here (the parent nodes element handles the connection)
 templ OtherClientsTable(clients []OtherClientData, showUser bool, sseEndpoint string) {
 	<table class="table--responsive" id="other-clients-table">
 		<thead>
@@ -205,7 +207,7 @@ templ OtherClientsTable(clients []OtherClientData, showUser bool, sseEndpoint st
 			id="other-clients-tbody"
 			if sseEndpoint != "" {
 				hx-ext="sse"
-				sse-connect={ sseEndpoint + "&type=other" }
+				sse-connect={ sseEndpoint }
 				sse-swap="other-clients-update"
 				hx-swap="innerHTML"
 			}
@@ -355,8 +357,8 @@ func otherClientsColSpan(showUser bool) string {
 
 templ proxyIcon(proxyType string) {
 	if proxyType == "Android" {
-		<i class="fab fa-android" style="font-size: 1.25em; margin-left: 0.5rem;" title="Android Proxy"></i>
+		<i class="fab fa-android text-xl ml-2" title="Android Proxy"></i>
 	} else if proxyType == "Apple" {
-		<i class="fab fa-apple" style="font-size: 1.25em; margin-left: 0.5rem;" title="iOS Proxy"></i>
+		<i class="fab fa-apple text-xl ml-2" title="iOS Proxy"></i>
 	}
 }

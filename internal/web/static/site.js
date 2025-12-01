@@ -10,23 +10,23 @@ var debounce=function(a){var e;return function(){var n=this,i=arguments;e&&windo
  * Main code section
  */
 
-// calculate 40rem in px (based off body font size)
-var mqw = parseInt(getComputedStyle(document.body).fontSize) * 40;
+/**
+ * Mobile navigation toggle
+ */
+function toggleMobileNav() {
+  const mobileNav = document.getElementById('mobile-nav');
+  const burgerIcon = document.querySelector('.burger i');
 
-// Selection of HTML objects
-const burger = document.querySelector('.burger i');
-const nav = document.querySelector('#header-nav');
+  if (mobileNav) {
+    mobileNav.classList.toggle('hidden');
 
-// Defining a function
-function toggleNav() {
-  burger.classList.toggle('fa-bars');
-  burger.classList.toggle('fa-times');
-  nav.classList.toggle('nav-active');
+    // Toggle burger icon
+    if (burgerIcon) {
+      burgerIcon.classList.toggle('fa-bars');
+      burgerIcon.classList.toggle('fa-times');
+    }
+  }
 }
-// Calling the function after click event occurs
-burger.addEventListener('click', function() {
-  toggleNav();
-});
 
 /**
  * Onboarding modal functions
@@ -566,9 +566,8 @@ function reconnectSSEWithFilters() {
   // Update sse-connect attribute and trigger reconnection
   sseElement.setAttribute('sse-connect', sseUrl);
   if (otherClientsTbody) {
-    // For other clients, append &type=other (use ? if no existing params)
-    const separator = params.toString() ? '&' : '?';
-    otherClientsTbody.setAttribute('sse-connect', sseUrl + separator + 'type=other');
+    // Other clients use the same SSE endpoint (it sends both event types)
+    otherClientsTbody.setAttribute('sse-connect', sseUrl);
   }
 
   // Trigger HTMX to reconnect SSE by removing and re-adding the extension

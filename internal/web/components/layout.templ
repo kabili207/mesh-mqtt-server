@@ -16,28 +16,42 @@ type LayoutProps struct {
 
 templ Layout(props LayoutProps) {
 	<div class="wrapper">
-		<header>
-			<div class="logo-view">
-				<a href="/">
-					<img class="logo" src="/static/pgh_mesh_nobg.svg" alt="Pittsburgh Mesh Logo"/>
-					<span>MQTT Server</span>
+		<header class="flex items-center w-full py-4 gap-4 flex-wrap">
+			<div class="logo-view flex-grow min-w-0">
+				<a href="/" class="flex items-center gap-2">
+					<img class="logo w-16 md:w-24 flex-shrink-0" src="/static/pgh_mesh_nobg.svg" alt="Pittsburgh Mesh Logo"/>
+					<span class="text-l md:text-2xl lg:text-3xl font-light whitespace-nowrap">MQTT Server</span>
 				</a>
 			</div>
-			<nav id="header-nav">
-				<ul class="mg-nav mg-nav--inline" data-toggle="nav">
-					<li class="active"><a href="/">My Nodes</a></li>
+			<nav id="header-nav" class="hidden md:block">
+				<ul class="flex flex-row gap-1 text-sm lg:text-base" data-toggle="nav">
+					<li class="px-2 py-1 lg:px-3 lg:py-2"><a href="/" class="hover:text-primary">My Nodes</a></li>
 					if props.ShowSetupGuide {
-						<li><a href="#" onclick="openOnboarding(2); return false;">Setup Guide</a></li>
+						<li class="px-2 py-1 lg:px-3 lg:py-2"><a href="#" onclick="openOnboarding(2); return false;" class="hover:text-primary">Setup Guide</a></li>
 					}
 					if props.IsSuperuser {
-						<li><a href="/all-nodes">All Nodes</a></li>
-						<li><a href="/users">Users</a></li>
+						<li class="px-2 py-1 lg:px-3 lg:py-2"><a href="/all-nodes" class="hover:text-primary">All Nodes</a></li>
+						<li class="px-2 py-1 lg:px-3 lg:py-2"><a href="/users" class="hover:text-primary">Users</a></li>
 					}
-					<li><a href="/auth/logout">Logout</a></li>
+					<li class="px-2 py-1 lg:px-3 lg:py-2"><a href="/auth/logout" class="hover:text-primary">Logout</a></li>
 				</ul>
 			</nav>
-			<div class="burger"><i class="fas fa-bars"></i></div>
+			<button class="burger md:hidden text-xl p-2" onclick="toggleMobileNav()"><i class="fas fa-bars"></i></button>
 		</header>
+		<!-- Mobile Navigation -->
+		<nav id="mobile-nav" class="hidden md:hidden bg-quinary rounded-lg mb-4 p-4">
+			<ul class="flex flex-col gap-2">
+				<li><a href="/" class="block py-2 px-3 hover:bg-quaternary rounded">My Nodes</a></li>
+				if props.ShowSetupGuide {
+					<li><a href="#" onclick="openOnboarding(2); return false;" class="block py-2 px-3 hover:bg-quaternary rounded">Setup Guide</a></li>
+				}
+				if props.IsSuperuser {
+					<li><a href="/all-nodes" class="block py-2 px-3 hover:bg-quaternary rounded">All Nodes</a></li>
+					<li><a href="/users" class="block py-2 px-3 hover:bg-quaternary rounded">Users</a></li>
+				}
+				<li><a href="/auth/logout" class="block py-2 px-3 hover:bg-quaternary rounded">Logout</a></li>
+			</ul>
+		</nav>
 
 		for i, a := range props.Alerts {
 			<div class="alert alert-{ a.Type }" id={ templ.EscapeString("alert-added-" + string(rune(i))) }>
@@ -48,12 +62,12 @@ templ Layout(props LayoutProps) {
 			</div>
 		}
 
-		<div class="mg-container">
+		<div class="container mx-auto">
 			{ children... }
 		</div>
 
-		<footer>
-			<a href="https://github.com/kabili207/mesh-mqtt-server">Github</a> | made by kabili207
+		<footer class="p-4 text-center text-tertiary">
+			<a href="https://github.com/kabili207/mesh-mqtt-server" class="text-primary hover:underline">Github</a> | made by kabili207
 		</footer>
 	</div>
 }

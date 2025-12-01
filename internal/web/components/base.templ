@@ -2,7 +2,7 @@ package components
 
 templ Base(title string) {
 	<!DOCTYPE html>
-	<html lang="en" data-theme="dark">
+	<html lang="en" class="dark">
 		<head>
 			<!-- htmx -->
 			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
@@ -11,14 +11,40 @@ templ Base(title string) {
 			<!-- Google Fonts -->
 			<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic"/>
 
-			<!-- CSS Reset -->
-			<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css"/>
-
 			<!-- Font Awesome -->
 			<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css"/>
 
-			<!-- Mg+ CSS -->
-			<link rel="stylesheet" href="https://cdn.mgpluscss.com/v1.4.5/mgplus.css"/>
+			<!-- Tailwind CSS -->
+			<script src="https://cdn.tailwindcss.com"></script>
+			<script>
+				tailwind.config = {
+					darkMode: 'class',
+					theme: {
+						extend: {
+							colors: {
+								primary: '#50a367',
+								secondary: '#6c757d',
+								tertiary: '#adb5bd',
+								quaternary: '#495057',
+								quinary: '#343a40',
+								initial: '#212529',
+								'mg-dark': 'hsl(255deg 0% 15%)',
+								'mg-light': 'hsl(255deg 0% 95%)',
+								'mg-red': '#dc3545',
+								'mg-orange': '#fd7e14',
+								'mg-blue': '#007bff',
+								'mg-green': '#50a367',
+							},
+							fontFamily: {
+								sans: ['Roboto', 'sans-serif'],
+							},
+							borderRadius: {
+								'mg': '1rem',
+							}
+						}
+					}
+				}
+			</script>
 
 			<link rel="stylesheet" href="/static/styles.css"/>
 
@@ -26,11 +52,10 @@ templ Base(title string) {
 			<meta name="theme-color" content="#94b5eb"/>
 			<title>{ title }</title>
 		</head>
-		<body>
-			<div class="main mg-container">
+		<body class="bg-mg-dark text-mg-light font-sans">
+			<div class="main container mx-auto px-4">
 				{ children... }
 			</div>
-			<script src="https://cdn.mgpluscss.com/v1.4.5/mgplus-vanilla.js?register=all"></script>
 			<script src="/static/site.js"></script>
 		</body>
 	</html>
@@ -39,7 +64,7 @@ templ Base(title string) {
 // BaseLogin is a simpler base for the login page without the full layout
 templ BaseLogin(title string) {
 	<!DOCTYPE html>
-	<html lang="en" data-theme="dark">
+	<html lang="en" class="dark">
 		<head>
 			<!-- htmx -->
 			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
@@ -47,14 +72,40 @@ templ BaseLogin(title string) {
 			<!-- Google Fonts -->
 			<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic"/>
 
-			<!-- CSS Reset -->
-			<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css"/>
-
 			<!-- Font Awesome -->
 			<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css"/>
 
-			<!-- Mg+ CSS -->
-			<link rel="stylesheet" href="https://cdn.mgpluscss.com/v1.4.5/mgplus.css"/>
+			<!-- Tailwind CSS -->
+			<script src="https://cdn.tailwindcss.com"></script>
+			<script>
+				tailwind.config = {
+					darkMode: 'class',
+					theme: {
+						extend: {
+							colors: {
+								primary: '#50a367',
+								secondary: '#6c757d',
+								tertiary: '#adb5bd',
+								quaternary: '#495057',
+								quinary: '#343a40',
+								initial: '#212529',
+								'mg-dark': 'hsl(255deg 0% 15%)',
+								'mg-light': 'hsl(255deg 0% 95%)',
+								'mg-red': '#dc3545',
+								'mg-orange': '#fd7e14',
+								'mg-blue': '#007bff',
+								'mg-green': '#50a367',
+							},
+							fontFamily: {
+								sans: ['Roboto', 'sans-serif'],
+							},
+							borderRadius: {
+								'mg': '1rem',
+							}
+						}
+					}
+				}
+			</script>
 
 			<link rel="stylesheet" href="/static/styles.css"/>
 
@@ -62,11 +113,10 @@ templ BaseLogin(title string) {
 			<meta name="theme-color" content="#94b5eb"/>
 			<title>{ title }</title>
 		</head>
-		<body>
-			<div class="main mg-container">
+		<body class="bg-mg-dark text-mg-light font-sans">
+			<div class="main container mx-auto px-4">
 				{ children... }
 			</div>
-			<script src="https://cdn.mgpluscss.com/v1.4.5/mgplus-vanilla.js?register=all"></script>
 		</body>
 	</html>
 }

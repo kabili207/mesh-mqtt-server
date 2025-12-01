@@ -72,11 +72,11 @@ templ UsersPage(data UsersPageData) {
 					document.getElementById('edit-superuser').checked = user.is_superuser;
 					document.getElementById('edit-gateway-allowed').checked = user.is_gateway_allowed;
 
-					document.getElementById('edit-user-modal').classList.add('mg-modal--active');
+					document.getElementById('edit-user-modal').classList.add('opened');
 				}
 
 				function closeEditModal() {
-					document.getElementById('edit-user-modal').classList.remove('mg-modal--active');
+					document.getElementById('edit-user-modal').classList.remove('opened');
 				}
 
 				function saveUser() {
@@ -158,7 +158,7 @@ templ UsersPage(data UsersPageData) {
 			</script>
 
 			<style>
-				.mg-modal {
+				#edit-user-modal {
 					display: none;
 					position: fixed;
 					z-index: 1000;
@@ -166,35 +166,36 @@ templ UsersPage(data UsersPageData) {
 					top: 0;
 					width: 100%;
 					height: 100%;
-					background-color: rgba(0,0,0,0.5);
+					background-color: rgba(0,0,0,0.7);
+					align-items: center;
+					justify-content: center;
 				}
 
-				.mg-modal--active {
-					display: block;
+				#edit-user-modal.opened {
+					display: flex;
 				}
 
-				.mg-modal-content {
-					background-color: var(--color-bg);
-					margin: 10% auto;
+				.user-modal-content {
+					background-color: var(--mg-color-initial);
 					padding: 0;
-					border: 1px solid var(--color-border);
-					border-radius: 8px;
+					border: 1px solid var(--mg-color-quaternary);
+					border-radius: 1rem;
 					width: 80%;
 					max-width: 500px;
 				}
 
-				.mg-modal-header {
+				.user-modal-header {
 					padding: 1rem;
-					border-bottom: 1px solid var(--color-border);
+					border-bottom: 1px solid var(--mg-color-quaternary);
 					position: relative;
 				}
 
-				.mg-modal-header h2 {
+				.user-modal-header h2 {
 					margin: 0;
 				}
 
-				.mg-modal-close {
-					color: var(--color-text);
+				.user-modal-close {
+					color: var(--mg-color-secondary);
 					float: right;
 					font-size: 28px;
 					font-weight: bold;
@@ -202,49 +203,40 @@ templ UsersPage(data UsersPageData) {
 					line-height: 1;
 				}
 
-				.mg-modal-close:hover {
-					color: var(--color-primary);
+				.user-modal-close:hover {
+					color: var(--mg-color-primary);
 				}
 
-				.mg-modal-body {
+				.user-modal-body {
 					padding: 1rem;
 				}
 
-				.mg-modal-footer {
+				.user-modal-footer {
 					padding: 1rem;
-					border-top: 1px solid var(--color-border);
+					border-top: 1px solid var(--mg-color-quaternary);
 					text-align: right;
 				}
 
-				.mg-modal-footer button {
+				.user-modal-footer button {
 					margin-left: 0.5rem;
 				}
 
-				.mg-form-group {
+				.form-group {
 					margin-bottom: 1rem;
 				}
 
-				.mg-form-group label {
+				.form-group label {
 					display: block;
 					margin-bottom: 0.5rem;
 				}
 
-				.mg-input {
-					width: 100%;
-					padding: 0.5rem;
-					border: 1px solid var(--color-border);
-					border-radius: 4px;
-					background-color: var(--color-bg-secondary);
-					color: var(--color-text);
-				}
-
-				.error-message {
+				#users-table .error-message {
 					color: #ff4444;
 					text-align: center;
 					padding: 1rem;
 				}
 
-				.loading-message {
+				#users-table .loading-message {
 					text-align: center;
 					padding: 1rem;
 				}
@@ -254,42 +246,42 @@ templ UsersPage(data UsersPageData) {
 }
 
 templ EditUserModal() {
-	<div id="edit-user-modal" class="mg-modal">
-		<div class="mg-modal-content">
-			<div class="mg-modal-header">
-				<span class="mg-modal-close" onclick="closeEditModal()">&times;</span>
+	<div id="edit-user-modal">
+		<div class="user-modal-content">
+			<div class="user-modal-header">
+				<span class="user-modal-close" onclick="closeEditModal()">&times;</span>
 				<h2>Edit User</h2>
 			</div>
-			<div class="mg-modal-body">
+			<div class="user-modal-body">
 				<form id="edit-user-form">
 					<input type="hidden" id="edit-user-id"/>
-					<div class="mg-form-group">
+					<div class="form-group">
 						<label for="edit-username">Username</label>
-						<input type="text" id="edit-username" class="mg-input" required/>
+						<input type="text" id="edit-username" class="input-field" required/>
 					</div>
-					<div class="mg-form-group">
+					<div class="form-group">
 						<label for="edit-display-name">Display Name</label>
-						<input type="text" id="edit-display-name" class="mg-input"/>
+						<input type="text" id="edit-display-name" class="input-field"/>
 					</div>
-					<div class="mg-form-group">
-						<label class="mg-toggle">
-							<input type="checkbox" id="edit-superuser"/>
-							<span class="mg-toggle--icon"></span>
+					<div class="form-group">
+						<label class="toggle-label">
+							<input type="checkbox" id="edit-superuser" class="toggle-checkbox"/>
+							<span class="toggle-switch"></span>
 							Superuser
 						</label>
 					</div>
-					<div class="mg-form-group">
-						<label class="mg-toggle">
-							<input type="checkbox" id="edit-gateway-allowed"/>
-							<span class="mg-toggle--icon"></span>
+					<div class="form-group">
+						<label class="toggle-label">
+							<input type="checkbox" id="edit-gateway-allowed" class="toggle-checkbox"/>
+							<span class="toggle-switch"></span>
 							Gateway Allowed
 						</label>
 					</div>
 				</form>
 			</div>
-			<div class="mg-modal-footer">
-				<button class="mg-btn mg-btn--secondary" onclick="closeEditModal()">Cancel</button>
-				<button class="mg-btn mg-btn--primary" onclick="saveUser()">Save</button>
+			<div class="user-modal-footer">
+				<button class="btn" onclick="closeEditModal()">Cancel</button>
+				<button class="btn btn-primary" onclick="saveUser()">Save</button>
 			</div>
 		</div>
 	</div>
@@ -319,8 +311,8 @@ templ UserRow(user UserRowData) {
 			}
 		</td>
 		<td data-label="Actions">
-			<button class="mg-btn mg-btn--sm mg-btn--primary" onclick={ templ.ComponentScript{Call: "editUser(" + intToStr(user.ID) + ")"} }>Edit</button>
-			<button class="mg-btn mg-btn--sm mg-btn--danger" onclick={ templ.ComponentScript{Call: "confirmDeleteUser(" + intToStr(user.ID) + ", '" + user.UserName + "')"} }>Delete</button>
+			<button class="btn btn-sm btn-primary" onclick={ templ.ComponentScript{Call: "editUser(" + intToStr(user.ID) + ")"} }>Edit</button>
+			<button class="btn btn-sm btn-danger" onclick={ templ.ComponentScript{Call: "confirmDeleteUser(" + intToStr(user.ID) + ", '" + user.UserName + "')"} }>Delete</button>
 		</td>
 	</tr>
 }

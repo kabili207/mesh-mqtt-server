@@ -5,7 +5,7 @@ import "strings"
 // ForwardingStatusPanel renders the forwarding status section
 templ ForwardingStatusPanel(status *ForwardingStatusData) {
 	if status != nil && status.Enabled {
-		<div class="forwarding-panel mg-marg-bottom-4">
+		<div class="forwarding-panel mb-8">
 			<h3>
 				<i class="fas fa-share-alt"></i>
 				Packet Forwarding
@@ -26,7 +26,7 @@ templ ForwardingStatusPanel(status *ForwardingStatusData) {
 
 // ForwardingTargetCard renders a single forwarding target status card
 templ ForwardingTargetCard(target ForwardingTargetData) {
-	<div class={ "forwarding-target-card", "mg-border", "mg-rounded1", templ.KV("connected", target.Connected), templ.KV("disconnected", !target.Connected) }>
+	<div class={ "forwarding-target-card", "border", "rounded-2xl", templ.KV("connected", target.Connected), templ.KV("disconnected", !target.Connected) }>
 		<div class="target-header">
 			<div class="target-name">
 				<span class={ "status-indicator", templ.KV("status-connected", target.Connected), templ.KV("status-disconnected", !target.Connected) }></span>
