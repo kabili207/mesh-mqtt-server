@@ -273,13 +273,16 @@ func (fc *ForwardingClient) shouldForward(topic string) bool {
 }
 
 // rewriteTopic applies topic rewrite rules to a topic
+// Note: Pattern matching is case-insensitive because Viper lowercases config keys
 func (fc *ForwardingClient) rewriteTopic(topic string) string {
 	if fc.TopicRewrites == nil {
 		return topic
 	}
 
+	topicLower := strings.ToLower(topic)
 	for pattern, replacement := range fc.TopicRewrites {
-		if strings.HasPrefix(topic, pattern) {
+		// Pattern is already lowercase from Viper
+		if strings.HasPrefix(topicLower, pattern) {
 			return replacement + topic[len(pattern):]
 		}
 	}
