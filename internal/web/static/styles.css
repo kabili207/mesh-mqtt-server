@@ -183,6 +183,13 @@
   background: var(--mg-color-quinary);
 }
 
+/* Global box-sizing */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* For desktop: */
 
 html,
@@ -1371,9 +1378,47 @@ tr.has-errors .gw-badge.gw-invalid {
    ======================================== */
 @media only screen and (max-width: 768px) {
   /* Prevent horizontal overflow on mobile */
-  body, .main, #tables-example {
+  html, body {
     overflow-x: hidden;
     max-width: 100vw;
+    width: 100%;
+  }
+
+  .main, #tables-example, #nodes-section {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  /* Header adjustments for mobile */
+  .wrapper > header {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .logo-view {
+    overflow: hidden;
+  }
+
+  .logo-view a {
+    overflow: hidden;
+  }
+
+  .logo-view a > span {
+    font-size: 2rem !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Ensure container doesn't cause overflow */
+  .wrapper {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .container {
+    max-width: 100%;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
 
   .table-controls {
@@ -1639,5 +1684,52 @@ tr.has-errors .gw-badge.gw-invalid {
 
   .target-detail-row .detail-label {
     min-width: auto;
+  }
+
+  /* Node grid and cards on mobile */
+  .node-grid {
+    padding: 0 0.25rem;
+  }
+
+  .node-card {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .node-card code {
+    word-break: break-all;
+    overflow-wrap: break-word;
+  }
+
+  .node-topic code {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+
+  .node-info-row {
+    flex-wrap: wrap;
+  }
+
+  .node-info-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Ensure tables don't overflow */
+  table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  #other-clients-table td:first-child code,
+  #other-clients-table td code {
+    word-break: break-all;
+    overflow-wrap: break-word;
   }
 }
