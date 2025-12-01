@@ -53,15 +53,7 @@ func AllNodesPage(data AllNodesPageData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!-- Forwarding Status Panel --> ")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = ForwardingStatusPanel(data.ForwardingStatus).Render(ctx, templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " <div id=\"tables-example\"><div class=\"table-controls\"><h3>All Nodes</h3><div class=\"filter-controls\"><input type=\"hidden\" id=\"filter-connected\" name=\"filter-connected\" value=\"on\"> <label class=\"toggle-label text-sm\">Valid Gateways Only <input type=\"checkbox\" id=\"filter-gateway\" name=\"filter-gateway\" class=\"toggle-checkbox\"> <span class=\"toggle-switch\"></span></label> <label class=\"toggle-label text-sm\">Auto-Refresh (15s) <input type=\"checkbox\" id=\"auto-refresh\" class=\"toggle-checkbox\"> <span class=\"toggle-switch\"></span></label></div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"tables-example\"><div class=\"table-controls\"><h3>All Nodes</h3><div class=\"filter-controls\"><input type=\"hidden\" id=\"filter-connected\" name=\"filter-connected\" value=\"on\"> <label class=\"toggle-label text-sm\">Valid Gateways Only <input type=\"checkbox\" id=\"filter-gateway\" name=\"filter-gateway\" class=\"toggle-checkbox\"> <span class=\"toggle-switch\"></span></label> <label class=\"toggle-label text-sm\">Auto-Refresh (15s) <input type=\"checkbox\" id=\"auto-refresh\" class=\"toggle-checkbox\"> <span class=\"toggle-switch\"></span></label></div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -69,11 +61,19 @@ func AllNodesPage(data AllNodesPageData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<h3 class=\"mt-6\">Other Connections</h3>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<h3 class=\"mt-6\">Other Connections</h3>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				templ_7745c5c3_Err = OtherClientsTable(data.OtherClients, true).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<!-- Forwarding Status Panel -->")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = ForwardingStatusPanel(data.ForwardingStatus).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
