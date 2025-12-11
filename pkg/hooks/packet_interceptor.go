@@ -28,6 +28,10 @@ func (h *MeshtasticHook) TryProcessMeshPacket(client *models.ClientDetails, env 
 		return false
 	}
 
+	if decoded.Bitfield == nil || *decoded.Bitfield&uint32(BITFIELD_OkToMQTT) == 0 {
+		return false
+	}
+
 	h.processMeshPacket(client, env, decoded)
 
 	if !shouldReencrypt {
@@ -40,6 +44,9 @@ func (h *MeshtasticHook) TryProcessMeshPacket(client *models.ClientDetails, env 
 			return false
 		}
 		rawData, err = radio.XOR(rawData, radio.DefaultKey, pkt.Id, pkt.From)
+		if err != nil {
+			return false
+		}
 		pkt.PayloadVariant = &pb.MeshPacket_Encrypted{
 			Encrypted: rawData,
 		}
