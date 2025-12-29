@@ -372,7 +372,7 @@ func (h *MeshtasticHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) b
 	result := write || isAllowed
 
 	if !result {
-		h.Log.Warn("ACL denied: gateway check failed",
+		h.Log.Debug("ACL denied: gateway check failed",
 			"client", cl.ID,
 			"user", cd.MqttUserName,
 			"topic", topic,
