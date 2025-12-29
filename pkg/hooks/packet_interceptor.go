@@ -177,7 +177,7 @@ func (h *MeshtasticHook) processNodeInfo(c *models.ClientDetails, env *pb.Servic
 	}
 
 	save := true
-	if !c.IsDownlinkVerified() || c.IsExpiringSoon() {
+	if c.NeedsVerification() {
 		if !c.IsPendingVerification() {
 			go h.TryVerifyNode(c.ClientID, false)
 		} else {

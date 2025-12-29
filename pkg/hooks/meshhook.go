@@ -74,12 +74,18 @@ type MeshtasticHookOptions struct {
 
 var _ models.MeshMqttServer = (*MeshtasticHook)(nil)
 
+const (
+	// VerificationCheckInterval is how often to check for expiring gateway verifications
+	VerificationCheckInterval = 1 * time.Hour
+)
+
 type MeshtasticHook struct {
 	mqtt.HookBase
 	config          *MeshtasticHookOptions
 	knownClients    map[string]*models.ClientDetails
 	clientLock      sync.RWMutex
 	currentPacketId uint32
+	stopChan        chan struct{}
 }
 
 func (h *MeshtasticHook) ID() string {
@@ -116,7 +122,79 @@ func (h *MeshtasticHook) Init(config any) error {
 	}
 
 	h.knownClients = make(map[string]*models.ClientDetails)
+	h.stopChan = make(chan struct{})
+
+	// Start periodic verification checker
+	go h.runPeriodicVerificationChecker()
+
 	return nil
+}
+
+// Stop gracefully shuts down the hook's background goroutines
+func (h *MeshtasticHook) Stop() error {
+	h.Log.Info("stopping mesht-hook")
+	if h.stopChan != nil {
+		close(h.stopChan)
+	}
+	return nil
+}
+
+// runPeriodicVerificationChecker periodically checks all connected gateway clients
+// for expiring verifications and triggers re-verification as needed
+func (h *MeshtasticHook) runPeriodicVerificationChecker() {
+	ticker := time.NewTicker(VerificationCheckInterval)
+	defer ticker.Stop()
+
+	h.Log.Info("started periodic verification checker", "interval", VerificationCheckInterval)
+
+	for {
+		select {
+		case <-h.stopChan:
+			h.Log.Info("stopping periodic verification checker")
+			return
+		case <-ticker.C:
+			h.checkExpiringVerifications()
+		}
+	}
+}
+
+// checkExpiringVerifications iterates through all connected clients and triggers
+// re-verification for any gateway clients whose verification is expiring soon
+func (h *MeshtasticHook) checkExpiringVerifications() {
+	h.clientLock.RLock()
+	clientIDs := make([]string, 0, len(h.knownClients))
+	for clientID := range h.knownClients {
+		clientIDs = append(clientIDs, clientID)
+	}
+	h.clientLock.RUnlock()
+
+	reverifiedCount := 0
+	for _, clientID := range clientIDs {
+		h.clientLock.RLock()
+		cd, ok := h.knownClients[clientID]
+		h.clientLock.RUnlock()
+
+		if !ok {
+			continue
+		}
+
+		cd.RLock()
+		shouldVerify := cd.ShouldStartVerification(false)
+		cd.RUnlock()
+
+		if shouldVerify {
+			h.Log.Info("triggering re-verification for expiring gateway",
+				"client", clientID)
+			h.TryVerifyNode(clientID, false)
+			reverifiedCount++
+		}
+	}
+
+	if reverifiedCount > 0 {
+		h.Log.Info("periodic verification check complete",
+			"clients_checked", len(clientIDs),
+			"reverification_triggered", reverifiedCount)
+	}
 }
 
 func (h *MeshtasticHook) GetAllClients() []*models.ClientDetails {
@@ -442,7 +520,7 @@ func (h *MeshtasticHook) TryVerifyNode(clientID string, force bool) {
 	}
 
 	cd.RLock()
-	shouldReq := cd.IsUsingGatewayTopic() && !cd.IsPendingVerification() && (!cd.IsDownlinkVerified() || cd.IsExpiringSoon() || force)
+	shouldReq := cd.ShouldStartVerification(force)
 	shouldTryNextChannel := cd.IsUsingGatewayTopic() && cd.ShouldTryNextChannel()
 	currentChannel := cd.VerifyChannel
 	cd.RUnlock()

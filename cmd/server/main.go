@@ -166,7 +166,8 @@ func main() {
 	<-done
 	server.Log.Warn("caught signal, stopping...")
 
-	// Stop forwarding hook gracefully
+	// Stop hooks gracefully
+	_ = meshHook.Stop()
 	if forwardingHook != nil {
 		_ = forwardingHook.Stop()
 	}

@@ -126,6 +126,22 @@ func (c *ClientDetails) IsUsingGatewayTopic() bool {
 	return strings.HasSuffix(c.RootTopic, "/Gateway")
 }
 
+// NeedsVerification returns true if the client's verification has expired
+// or is expiring soon and needs to be renewed.
+func (c *ClientDetails) NeedsVerification() bool {
+	return !c.IsDownlinkVerified() || c.IsExpiringSoon()
+}
+
+// ShouldStartVerification returns true if a new verification request should
+// be initiated for a gateway client. Checks that the client is using a gateway
+// topic, has no pending verification, and either needs verification or force is true.
+func (c *ClientDetails) ShouldStartVerification(force bool) bool {
+	if !c.IsUsingGatewayTopic() || c.IsPendingVerification() {
+		return false
+	}
+	return c.NeedsVerification() || force
+}
+
 func (c *ClientDetails) IsValidGateway() bool {
 	extValid := true
 	if c.ValidGWChecker != nil {
